@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: agentic-postgres
+    environment:
+      POSTGRES_DB: agentic_sandbox
+      POSTGRES_USER: agentic_user
+      POSTGRES_PASSWORD: agentic_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - agentic-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentic_user -d agentic_sandbox"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: agentic-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - agentic-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agentic-api
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://agentic_user:agentic_password@postgres:5432/agentic_sandbox
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-change-in-production
+      LOG_LEVEL: debug
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - agentic-network
+    restart: unless-stopped
+
+  # pgAdmin (Optional - for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: agentic-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@agentic.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - agentic-network
+    profiles:
+      - tools
+
+  # Redis Commander (Optional - for Redis management)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: agentic-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - agentic-network
+    depends_on:
+      - redis
+    profiles:
+      - tools
+
+networks:
+  agentic-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
