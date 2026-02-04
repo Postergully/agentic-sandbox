@@ -404,7 +404,7 @@ interface SSLConfig {
 |------|--------|-------|
 | PostgreSQL registry table | ✅ Done | `migrations/006_mock_server_registry.sql` |
 | Registry service | ✅ Done | `src/services/registryService.ts` |
-| Factory CLI scaffolding | 🔲 TODO | Commander.js or similar |
+| Factory CLI scaffolding | ✅ Done | `src/cli/index.ts` - Commander.js |
 | Factory API endpoints | ✅ Done | `src/routes/factory.ts` |
 
 ### Phase 2: Schema Inference ✅ COMPLETE
@@ -554,10 +554,10 @@ $ mock-factory list
 ## Acceptance Criteria
 
 ### Factory Tool
-- [ ] CLI creates mock server instance from connector + API docs + brief
-- [ ] API endpoints mirror CLI functionality
+- [x] CLI creates mock server instance from connector + API docs + brief
+- [x] API endpoints mirror CLI functionality
 - [ ] Clone operation copies base and customizes with new brief
-- [ ] List/Info/Delete operations work correctly
+- [x] List/Info/Delete operations work correctly
 
 ### Schema Inference
 - [ ] URL fetch retrieves and parses API documentation
@@ -586,6 +586,70 @@ $ mock-factory list
 ---
 
 ## Session Log
+
+### 2026-02-05 (Session 6)
+**Factory CLI Tool Complete**
+
+Implemented Commander.js CLI with full credential output for AI agents:
+
+**Commands:**
+- `npm run cli -- create -c <connector> -o <org>` - Creates instance with SSL
+- `npm run cli -- list` - Lists all instances in table format
+- `npm run cli -- info <instanceId>` - Shows credentials box for copy/paste
+- `npm run cli -- delete <instanceId>` - Removes instance
+
+**Key Features:**
+- Outputs copy-pasteable credentials box with URL, Client ID, Client Secret
+- Auto-generates HTTPS URLs matching real connector formats
+- Provides /etc/hosts setup instructions for local SSL
+- JSON output mode for automation
+
+**Files Created:**
+- `src/cli/index.ts` - CLI entry point
+- `src/cli/commands/create.ts` - Create command with SSL setup
+- `src/cli/commands/list.ts` - List command with table formatting
+- `src/cli/commands/info.ts` - Info command with credentials box
+- `src/cli/commands/delete.ts` - Delete command with confirmation
+- `src/cli/utils/formatters.ts` - Output formatters (table, credentials box, SSL instructions)
+- `tests/unit/cli/*.test.ts` - Unit tests
+- `tests/integration/cli.test.ts` - Integration tests
+
+**Testing:**
+```bash
+# Create a new instance
+npm run cli -- create -c netsuite -o sharechat
+
+# Get credentials for Claude Cowork
+npm run cli -- info netsuite_sharechat_xxx --creds
+
+# List all instances
+npm run cli -- list
+```
+
+**Commits:**
+- a2c498d: deps: add commander, chalk, ora for CLI
+- c2d4b05: feat(cli): add CLI entry point with Commander.js
+- (list): feat(cli): add list command with table formatting
+- aae4f12: feat(cli): add create command with SSL setup and credentials output
+- (info/delete): feat(cli): add info and delete commands
+- 8c579d1: feat(cli): wire up all commands and add npm scripts
+- cd58eb9: test(cli): add integration tests for CLI commands
+```bash
+# After implementation, usage will be:
+npm run cli -- create -c netsuite -o sharechat
+
+# Output includes:
+# ✅ Mock Server Ready!
+# ┌─────────────────────────────────────────────────────────────────┐
+# │ URL:           https://sharechat.suitetalk.api.netsuite.com     │
+# │ Client ID:     mock-client-sharechat-netsuite                   │
+# │ Client Secret: mock-secret-abc123xyz                            │
+# └─────────────────────────────────────────────────────────────────┘
+#
+# ⚠️  SSL Setup: sudo sh -c 'echo "127.0.0.1  sharechat..." >> /etc/hosts'
+```
+
+---
 
 ### 2026-02-05 (Session 5)
 **Mock Server Factory Implementation Complete**
