@@ -17,16 +17,17 @@ const router = Router();
 // MCP Protocol version
 const MCP_VERSION = '2024-11-05';
 
-// Server capabilities
+// Server info (for initialize response)
 const SERVER_INFO = {
   name: 'agentic-sandbox',
   version: '1.0.0',
-  protocolVersion: MCP_VERSION,
-  capabilities: {
-    tools: {},
-    resources: {},
-    prompts: {},
-  },
+};
+
+// Server capabilities (for initialize response)
+const SERVER_CAPABILITIES = {
+  tools: { listChanged: true },
+  resources: {},
+  prompts: {},
 };
 
 // Available tools for Snowflake mock
@@ -84,8 +85,9 @@ router.get('/', (_req: Request, res: Response) => {
   res.json({
     jsonrpc: '2.0',
     result: {
-      ...SERVER_INFO,
-      tools: SNOWFLAKE_TOOLS,
+      protocolVersion: MCP_VERSION,
+      capabilities: SERVER_CAPABILITIES,
+      serverInfo: SERVER_INFO,
     },
   });
 });
@@ -113,10 +115,16 @@ router.post('/', async (req: Request, res: Response) => {
     switch (method) {
       case 'initialize':
         result = {
-          ...SERVER_INFO,
-          tools: SNOWFLAKE_TOOLS,
+          protocolVersion: MCP_VERSION,
+          capabilities: SERVER_CAPABILITIES,
+          serverInfo: SERVER_INFO,
         };
         break;
+
+      case 'notifications/initialized':
+        // Client notification that initialization is complete - no response needed
+        res.status(204).end();
+        return;
 
       case 'tools/list':
         result = { tools: SNOWFLAKE_TOOLS };
