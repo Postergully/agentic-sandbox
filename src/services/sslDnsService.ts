@@ -315,9 +315,9 @@ class SSLDnsService {
         fs.mkdirSync(certDir, { recursive: true });
       }
 
-      // Generate certificates
+      // Generate certificates (JAVA_HOME="" avoids Java keystore issues)
       const { stdout, stderr } = await execAsync(
-        `mkcert -cert-file "${certPath}" -key-file "${keyPath}" "${domain}" localhost 127.0.0.1`
+        `JAVA_HOME="" mkcert -cert-file "${certPath}" -key-file "${keyPath}" "${domain}" localhost 127.0.0.1`
       );
 
       if (stderr && !stderr.includes('Created')) {

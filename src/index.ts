@@ -1,15 +1,41 @@
+import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
 import app from './app';
 import config from './config';
 import logger from './utils/logger';
 import database from './config/database';
 import redisClient from './config/redis';
 
+// HTTPS configuration
+const HTTPS_PORT = parseInt(process.env.HTTPS_PORT || '443', 10);
+const CERT_PATH = process.env.SSL_CERT_PATH || path.join(process.cwd(), 'certs');
+
+function getSSLCerts(): { key: Buffer; cert: Buffer } | null {
+  try {
+    // Look for wildcard certs first, then specific certs
+    const certFiles = fs.readdirSync(CERT_PATH);
+    const certFile = certFiles.find(f => f.endsWith('.pem') && !f.includes('-key'));
+    const keyFile = certFiles.find(f => f.endsWith('-key.pem'));
+
+    if (certFile && keyFile) {
+      return {
+        cert: fs.readFileSync(path.join(CERT_PATH, certFile)),
+        key: fs.readFileSync(path.join(CERT_PATH, keyFile)),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const startServer = async () => {
   try {
-    // Test database connection
+    // Test database connection (optional in development)
     const dbConnected = await database.testConnection();
     if (!dbConnected) {
-      throw new Error('Failed to connect to database');
+      logger.warn('Failed to connect to database - some features may be unavailable');
     }
 
     // Test Redis connection
@@ -18,16 +44,40 @@ const startServer = async () => {
       logger.warn('Failed to connect to Redis - continuing without cache');
     }
 
-    // Start the server
+    // Start HTTP server
     const server = app.listen(config.port, config.host, () => {
-      logger.info(`Server running on ${config.host}:${config.port}`);
+      logger.info(`HTTP Server running on ${config.host}:${config.port}`);
       logger.info(`Environment: ${config.env}`);
       logger.info(`API Base URL: http://${config.host}:${config.port}/api`);
     });
 
+    // Start HTTPS server if certs are available
+    const sslCerts = getSSLCerts();
+    let httpsServer: https.Server | null = null;
+
+    if (sslCerts) {
+      try {
+        httpsServer = https.createServer(sslCerts, app);
+        httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+          logger.info(`HTTPS Server running on 0.0.0.0:${HTTPS_PORT}`);
+          logger.info(`Mock URLs will work via /etc/hosts + HTTPS`);
+        });
+      } catch (err) {
+        logger.warn(`Failed to start HTTPS server: ${err}. Run with sudo for port 443.`);
+      }
+    } else {
+      logger.info('No SSL certs found in ./certs - HTTPS disabled');
+      logger.info('Run: npm run cli -- create -c snowflake -o yourorg to generate certs');
+    }
+
     // Graceful shutdown
     const gracefulShutdown = async (signal: string) => {
       logger.info(`${signal} received. Starting graceful shutdown...`);
+
+      // Close HTTPS server if running
+      if (httpsServer) {
+        httpsServer.close(() => logger.info('HTTPS server closed'));
+      }
 
       server.close(async () => {
         logger.info('HTTP server closed');
