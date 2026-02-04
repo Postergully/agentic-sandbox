@@ -43,20 +43,27 @@ export function formatCredentialsBox(instance: MockServerInstance): string {
 
   const clientId = mockCreds?.clientId || `mock-client-${instance.orgId}-${instance.connector}`;
   const clientSecret = mockCreds?.clientSecret || `mock-secret-${Date.now().toString(36)}`;
-  const tokenUrl = `${instance.baseUrl}/oauth/token`;
+  const baseUrl = instance.baseUrl || 'https://localhost';
+  const tokenUrl = `${baseUrl}/oauth/token`;
+  const mcpUrl = `${baseUrl}/mcp`;
 
   const box = `
-${chalk.green.bold('✅ Mock Server Ready!')}
+${chalk.green.bold('✅ Mock Server Instance Created!')}
 
-${chalk.cyan('┌' + '─'.repeat(65) + '┐')}
-${chalk.cyan('│')} ${chalk.bold('COPY THESE CREDENTIALS INTO CLAUDE COWORK / PIPESHUB')}${' '.repeat(10)}${chalk.cyan('│')}
-${chalk.cyan('├' + '─'.repeat(65) + '┤')}
-${chalk.cyan('│')} URL:           ${chalk.yellow((instance.baseUrl || 'N/A').padEnd(47))}${chalk.cyan('│')}
-${chalk.cyan('│')} Auth Type:     ${chalk.white('OAuth 2.0'.padEnd(47))}${chalk.cyan('│')}
-${chalk.cyan('│')} Client ID:     ${chalk.white(clientId.padEnd(47))}${chalk.cyan('│')}
-${chalk.cyan('│')} Client Secret: ${chalk.white(clientSecret.padEnd(47))}${chalk.cyan('│')}
-${chalk.cyan('│')} Token URL:     ${chalk.white(tokenUrl.substring(0, 47).padEnd(47))}${chalk.cyan('│')}
-${chalk.cyan('└' + '─'.repeat(65) + '┘')}
+${chalk.cyan('┌' + '─'.repeat(70) + '┐')}
+${chalk.cyan('│')} ${chalk.bold.yellow('OPTION 1: REST API')} ${chalk.gray('(Direct API access)')}${' '.repeat(35)}${chalk.cyan('│')}
+${chalk.cyan('├' + '─'.repeat(70) + '┤')}
+${chalk.cyan('│')} Base URL:      ${chalk.white(baseUrl.padEnd(52))}${chalk.cyan('│')}
+${chalk.cyan('│')} Auth Type:     ${chalk.white('OAuth 2.0'.padEnd(52))}${chalk.cyan('│')}
+${chalk.cyan('│')} Client ID:     ${chalk.white(clientId.padEnd(52))}${chalk.cyan('│')}
+${chalk.cyan('│')} Client Secret: ${chalk.white(clientSecret.padEnd(52))}${chalk.cyan('│')}
+${chalk.cyan('│')} Token URL:     ${chalk.white(tokenUrl.substring(0, 52).padEnd(52))}${chalk.cyan('│')}
+${chalk.cyan('├' + '─'.repeat(70) + '┤')}
+${chalk.cyan('│')} ${chalk.bold.yellow('OPTION 2: MCP Server')} ${chalk.gray('(Claude Cowork / Claude Desktop)')}${' '.repeat(17)}${chalk.cyan('│')}
+${chalk.cyan('├' + '─'.repeat(70) + '┤')}
+${chalk.cyan('│')} MCP URL:       ${chalk.white(mcpUrl.padEnd(52))}${chalk.cyan('│')}
+${chalk.cyan('│')} Type:          ${chalk.white('http'.padEnd(52))}${chalk.cyan('│')}
+${chalk.cyan('└' + '─'.repeat(70) + '┘')}
 `;
 
   return box;
@@ -64,10 +71,30 @@ ${chalk.cyan('└' + '─'.repeat(65) + '┘')}
 
 export function formatSSLInstructions(domain: string): string {
   return `
-${chalk.yellow.bold('⚠️  SSL Setup Required (run once):')}
-    ${chalk.gray('sudo sh -c \'echo "127.0.0.1  ' + domain + '" >> /etc/hosts\'')}
+${chalk.yellow.bold('━━━ SETUP INSTRUCTIONS ━━━')}
 
-${chalk.gray('Then verify with:')}
-    ${chalk.gray('ping ' + domain)}
+${chalk.bold('1. Add to /etc/hosts')} ${chalk.gray('(one-time, if not already done):')}
+   ${chalk.cyan('sudo sh -c \'echo "127.0.0.1  ' + domain + '" >> /etc/hosts\'')}
+
+${chalk.bold('2. Start HTTPS Server')} ${chalk.gray('(requires sudo for port 443):')}
+   ${chalk.cyan('sudo PORT=3002 HTTPS_PORT=443 npx ts-node src/index.ts')}
+
+${chalk.bold('3. Verify connection:')}
+   ${chalk.cyan('curl -k https://' + domain + '/health')}
+
+${chalk.gray('For MCP (Claude Cowork), also verify:')}
+   ${chalk.cyan('curl -k https://' + domain + '/mcp')}
+`;
+}
+
+export function formatQuickStart(domain: string): string {
+  return `
+${chalk.bold.green('Quick Start Commands:')}
+${chalk.gray('─'.repeat(50))}
+${chalk.white('# Start server (copy & run):')}
+${chalk.cyan(`sudo PORT=3002 HTTPS_PORT=443 npx ts-node src/index.ts`)}
+
+${chalk.white('# Test connection:')}
+${chalk.cyan(`curl -k https://${domain}/health`)}
 `;
 }

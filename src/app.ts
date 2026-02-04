@@ -15,6 +15,7 @@ import netsuiteRoutes from './routes/netsuite';
 import connectorRoutes from './routes/connectors';
 import snowflakeRoutes from './routes/snowflake';
 import factoryRoutes from './routes/factory';
+import mcpRoutes from './routes/mcp';
 
 class App {
   public app: Application;
@@ -88,6 +89,9 @@ class App {
 
     // Mock Server Factory routes
     this.app.use('/api/factory', factoryRoutes);
+
+    // MCP (Model Context Protocol) routes for Claude Cowork / Claude Desktop
+    this.app.use('/mcp', mcpRoutes);
 
     // Root route
     this.app.get('/', (_req, res) => {
