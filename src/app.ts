@@ -12,6 +12,9 @@ import { apiRateLimiter } from './middleware/rateLimiter';
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
 import netsuiteRoutes from './routes/netsuite';
+import connectorRoutes from './routes/connectors';
+import snowflakeRoutes from './routes/snowflake';
+import factoryRoutes from './routes/factory';
 
 class App {
   public app: Application;
@@ -77,6 +80,14 @@ class App {
 
     // Connector routes
     this.app.use('/api/netsuite', netsuiteRoutes);
+    this.app.use('/api/v1/connectors', connectorRoutes);
+
+    // Snowflake SQL REST API routes (isolated mock server)
+    // Matches Snowflake's actual API structure: /api/v2/statements, /api/v2/oauth
+    this.app.use('/api/v2', snowflakeRoutes);
+
+    // Mock Server Factory routes
+    this.app.use('/api/factory', factoryRoutes);
 
     // Root route
     this.app.get('/', (_req, res) => {
