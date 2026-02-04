@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Mock connector service for testing AI agents with enterprise systems",
   "main": "dist/index.js",
+  "bin": {
+    "mock-factory": "./dist/cli/index.js"
+  },
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
@@ -17,7 +20,9 @@
     "migrate": "node-pg-migrate",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "docker:logs": "docker-compose logs -f",
+    "cli": "ts-node src/cli/index.ts",
+    "mock-factory": "ts-node src/cli/index.ts"
   },
   "keywords": [
     "ai-agents",
