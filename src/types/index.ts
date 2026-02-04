@@ -50,7 +50,29 @@ export interface ResponseMeta {
 }
 
 // Connector Types
-export type ConnectorType = 'netsuite' | 'salesforce' | 'hubspot' | 'quickbooks';
+export type ConnectorType = 'netsuite' | 'salesforce' | 'hubspot' | 'quickbooks' | 'snowflake';
+
+export type AppGroup = 'ERP' | 'CRM' | 'Marketing' | 'Accounting';
+
+export type AuthType = 'OAUTH' | 'API_KEY' | 'BASIC';
+
+export interface Connector {
+  _key: string;
+  name: string;
+  type: string;
+  appGroup: AppGroup;
+  appGroupId: string;
+  authType: AuthType;
+  appDescription: string;
+  appCategories: string[];
+  iconPath: string;
+  isActive: boolean;
+  isConfigured: boolean;
+  isAuthenticated: boolean;
+  supportsRealtime: boolean;
+  createdAtTimestamp: number;
+  updatedAtTimestamp: number;
+}
 
 export interface ConnectorConfig {
   id: string;
@@ -148,4 +170,155 @@ export interface DataGenerationResponse {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   recordsGenerated: number;
   message?: string;
+}
+
+// Snowflake Metadata Types
+export interface SnowflakeDatabase {
+  id: string;
+  name: string;
+  owner: string;
+  createdAt: string;
+  comment?: string;
+}
+
+export interface SnowflakeSchema {
+  id: string;
+  databaseId: string;
+  name: string;
+  owner: string;
+  createdAt: string;
+}
+
+export interface SnowflakeTable {
+  id: string;
+  schemaId: string;
+  name: string;
+  rowCount: number;
+  bytes: number;
+  createdAt: string;
+}
+
+export interface SnowflakeColumn {
+  id: string;
+  tableId: string;
+  name: string;
+  dataType: string;
+  nullable: boolean;
+  ordinalPosition: number;
+}
+
+export interface SnowflakeWarehouse {
+  id: string;
+  name: string;
+  size: 'X-Small' | 'Small' | 'Medium' | 'Large' | 'X-Large';
+  state: 'STARTED' | 'SUSPENDED' | 'RESIZING';
+  autoSuspendSeconds: number;
+  createdAt: string;
+}
+
+export interface SnowflakeQueryHistoryEntry {
+  id: string;
+  statementHandle: string;
+  sqlText: string;
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED_WITH_ERROR' | 'ABORTED';
+  rowsProduced?: number;
+  executionTimeMs?: number;
+  createdAt: string;
+  completedAt?: string;
+}
+
+// Snowflake Sample Data Types
+export interface SnowflakeSampleCustomer {
+  id: string;
+  customerId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  industry?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SnowflakeSampleOrder {
+  id: string;
+  orderId: string;
+  customerId: string;
+  orderDate: string;
+  status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  totalAmount: number;
+  shippingAddress?: string;
+}
+
+export interface SnowflakeSampleProduct {
+  id: string;
+  productId: string;
+  name: string;
+  category: string;
+  price: number;
+  stockQuantity: number;
+  description?: string;
+}
+
+export interface SnowflakeSampleOrderItem {
+  id: string;
+  orderId: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+// Snowflake Statement Types
+export interface SnowflakeStatementRequest {
+  statement: string;
+  timeout?: number;
+  database?: string;
+  schema?: string;
+  warehouse?: string;
+  role?: string;
+  bindings?: Record<string, unknown>;
+  parameters?: Record<string, unknown>;
+}
+
+export interface SnowflakeStatementStatus {
+  statementHandle: string;
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED_WITH_ERROR' | 'ABORTED';
+  message: string;
+  createdOn: number;
+  sqlState: string;
+  code: string;
+}
+
+// Mock Server Registry Types
+export type MockServerStatus = 'creating' | 'active' | 'stopped' | 'error';
+
+export interface MockServerInstance {
+  id?: string;
+  instanceId: string;              // e.g., netsuite_sharechat_331
+  connector: string;               // e.g., netsuite
+  orgId: string;                   // e.g., sharechat
+  jobId?: string;                  // e.g., 331
+  status: MockServerStatus;
+  errorMessage?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  lastAccessedAt?: Date;
+  generationBrief?: object;        // GenerationBrief JSONB
+  connectorSchema?: object;        // ConnectorSchema JSONB
+  sslConfig?: object;              // SSL config JSONB
+  baseUrl?: string;
+  apiBasePath?: string;
+  authEndpoint?: string;
+  mockCredentials?: object;
+  entityCount?: number;
+  recordCounts?: object;
+  apiDocsSource?: string;
+  pgSchema: string;
+}
+
+export interface RegistryFilter {
+  connector?: string;
+  orgId?: string;
+  status?: MockServerStatus;
 }
