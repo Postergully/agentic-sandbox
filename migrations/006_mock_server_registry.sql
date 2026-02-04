@@ -11,7 +11,7 @@
 -- Core registry table for tracking mock server instances
 CREATE TABLE IF NOT EXISTS mock_server_registry (
     -- Primary identification
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     instance_id VARCHAR(255) UNIQUE NOT NULL,     -- Unique instance identifier (e.g., netsuite_sharechat_331)
     connector VARCHAR(100) NOT NULL,               -- Connector type (e.g., netsuite, snowflake, google_workspace)
     org_id VARCHAR(100) NOT NULL,                  -- Organization identifier (e.g., sharechat)
@@ -77,20 +77,11 @@ CREATE INDEX idx_mock_registry_last_accessed ON mock_server_registry(last_access
 -- TRIGGER FOR UPDATED_AT TIMESTAMP
 -- ============================================================================
 
--- Function to auto-update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_mock_registry_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger to invoke the function on updates
+-- Reuse existing update_updated_at_column() function from 001_initial_schema.sql
 CREATE TRIGGER trigger_mock_registry_updated_at
     BEFORE UPDATE ON mock_server_registry
     FOR EACH ROW
-    EXECUTE FUNCTION update_mock_registry_timestamp();
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
 -- COMMENTS FOR DOCUMENTATION
