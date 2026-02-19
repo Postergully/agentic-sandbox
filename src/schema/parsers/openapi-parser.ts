@@ -149,6 +149,24 @@ function inferOperation(method: HttpMethod, path: string): Operation {
 /**
  * Converts a string to snake_case
  */
+/**
+ * Normalizes a version string to semver format (X.Y.Z).
+ * Handles common non-semver versions like "v1", "2.0", "1", etc.
+ */
+function toSemver(version?: string): string {
+  if (!version) return '1.0.0';
+  // Strip leading 'v' or 'V'
+  const cleaned = version.replace(/^[vV]/, '');
+  // Already valid semver?
+  if (/^\d+\.\d+\.\d+/.test(cleaned)) return cleaned;
+  // Two-part version like "2.0"
+  if (/^\d+\.\d+$/.test(cleaned)) return `${cleaned}.0`;
+  // Single number like "1"
+  if (/^\d+$/.test(cleaned)) return `${cleaned}.0.0`;
+  // Fallback
+  return '1.0.0';
+}
+
 function toSnakeCase(str: string): string {
   return str
     .replace(/([A-Z])/g, '_$1')
@@ -549,7 +567,7 @@ export class OpenAPIParser {
 
     const schema: ConnectorSchema = {
       name,
-      version: api.info?.version || '1.0.0',
+      version: toSemver(api.info?.version),
       baseUrl: this.options.baseUrl,
       auth,
       entities,
