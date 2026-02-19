@@ -49,6 +49,7 @@ import {
   LLMAgentParserOptions,
   LLMAgentParseResult,
 } from './llm-agent-parser';
+import { validateSchemaQuality, QualityReport } from './schema-quality-validator';
 
 // =============================================================================
 // TYPES
@@ -752,6 +753,14 @@ function finalizeResult(
     }
   }
 
+  // Run quality gate (non-blocking warnings)
+  const qualityReport = validateSchemaQuality(schema);
+  if (qualityReport.warnings.length > 0) {
+    warnings.push(...qualityReport.warnings);
+  }
+  metadata.qualityScore = qualityReport.score;
+  metadata.isShallow = qualityReport.isShallow;
+
   // Save to file if output path specified
   if (options.outputPath) {
     const outputDir = path.dirname(options.outputPath);
@@ -812,6 +821,10 @@ export {
   LLMAgentParser,
   LLMAgentParserOptions,
   LLMAgentParseResult,
+
+  // Schema Quality Validator
+  validateSchemaQuality,
+  QualityReport,
 
   // Schema types
   ConnectorSchema,

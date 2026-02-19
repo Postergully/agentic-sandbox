@@ -195,8 +195,14 @@ function toCamelCase(str: string): string {
 }
 
 /**
- * Extracts entity name from path
- * e.g., '/customers/{id}' -> 'Customer'
+ * Segments to skip when extracting entity names from paths.
+ * Includes version prefixes (v1, v2.1) and common non-entity segments.
+ */
+const NON_ENTITY_SEGMENTS = new Set(['api', 'public', 'internal', 'external', 'rest', 'graphql', 'admin', 'private']);
+
+/**
+ * Extracts entity name from path, skipping version prefixes and non-entity segments.
+ * e.g., '/v1/public/contracts/{id}' -> 'Contract'
  */
 function extractEntityNameFromPath(path: string): string {
   // Remove leading slash and parameters
@@ -208,14 +214,18 @@ function extractEntityNameFromPath(path: string): string {
     return 'Root';
   }
 
-  // Use the first meaningful segment
-  const entityName = segments[0];
+  // Find the first meaningful segment (skip version prefixes and non-entity segments)
+  const entitySegment = segments.find(
+    (s) => !(/^v\d+\.?\d*$/i.test(s)) && !NON_ENTITY_SEGMENTS.has(s.toLowerCase())
+  );
+
+  const entityName = entitySegment || segments[segments.length - 1];
 
   // Singularize common patterns
   let singular = entityName;
   if (singular.endsWith('ies')) {
     singular = singular.slice(0, -3) + 'y';
-  } else if (singular.endsWith('es') && !singular.endsWith('ses')) {
+  } else if (singular.endsWith('ses') || singular.endsWith('xes') || singular.endsWith('zes') || singular.endsWith('ches') || singular.endsWith('shes')) {
     singular = singular.slice(0, -2);
   } else if (singular.endsWith('s') && !singular.endsWith('ss')) {
     singular = singular.slice(0, -1);
@@ -811,4 +821,5 @@ export function isOpenAPISpec(input: string): boolean {
   }
 }
 
+export { extractEntityNameFromPath as _extractEntityNameFromPath };
 export default OpenAPIParser;
