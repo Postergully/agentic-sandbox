@@ -1,0 +1,33 @@
+# Specmatic Configuration for Agentic Sandbox
+# This configures contract testing and mock server management
+
+# OpenAPI specifications for contract testing
+contract:
+  - ./schemas/snowflake-openapi.yaml
+
+# Stub server configuration (points to WireMock)
+stub:
+  host: ${WIREMOCK_HOST:-localhost}
+  port: ${WIREMOCK_PORT:-8080}
+
+# Test configuration
+test:
+  # Target URL for contract tests
+  targetBaseUrl: http://${WIREMOCK_HOST:-localhost}:${WIREMOCK_PORT:-8080}
+
+# Report output directory
+report:
+  formatters:
+    - type: junit
+      outputDirectory: ./reports
+
+# Environment-specific settings
+environments:
+  local:
+    stub:
+      host: localhost
+      port: 8080
+  docker:
+    stub:
+      host: wiremock
+      port: 8080

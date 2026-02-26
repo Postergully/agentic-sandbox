@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <linearGradient id="jira1" x1="24.001" x2="37.257" y1="14.974" y2="28.23" gradientUnits="userSpaceOnUse">
+    <stop offset=".176" stop-color="#0052CC"/>
+    <stop offset="1" stop-color="#2684FF"/>
+  </linearGradient>
+  <path fill="url(#jira1)" d="M44.7,23.3L26.4,5c-0.2-0.2-0.4-0.3-0.7-0.3c-0.3,0-0.5,0.1-0.7,0.3L6.3,23.7c-0.4,0.4-0.4,1,0,1.4 l7.1,7.1l11.3,11.3c0.4,0.4,1,0.4,1.4,0L44.7,25C45.1,24.6,45.1,23.7,44.7,23.3z M24.7,30.1l-6.1-6.1l6.1-6.1l6.1,6.1L24.7,30.1z"/>
+  <linearGradient id="jira2" x1="17.243" x2="23.688" y1="24.974" y2="18.529" gradientUnits="userSpaceOnUse">
+    <stop offset=".176" stop-color="#0052CC"/>
+    <stop offset="1" stop-color="#2684FF"/>
+  </linearGradient>
+  <path fill="url(#jira2)" d="M24.7,17.9c-3.4-3.4-3.4-8.8,0-12.2L6.3,24l7.1,7.1L24.7,17.9z"/>
+  <linearGradient id="jira3" x1="32.171" x2="25.743" y1="23.027" y2="29.455" gradientUnits="userSpaceOnUse">
+    <stop offset=".176" stop-color="#0052CC"/>
+    <stop offset="1" stop-color="#2684FF"/>
+  </linearGradient>
+  <path fill="url(#jira3)" d="M30.8,24L24.7,30.1c3.4,3.4,3.4,8.8,0,12.2l18.4-17.3L30.8,24z"/>
+</svg>

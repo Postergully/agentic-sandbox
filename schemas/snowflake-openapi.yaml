@@ -1,0 +1,2257 @@
+openapi: 3.0.3
+info:
+  title: Snowflake Mock API
+  version: 1.0.0
+  description: Snowflake Data Cloud - SQL REST API mock server for AI agent testing
+servers:
+  - url: http://localhost:8080/api/v2
+    description: WireMock Mock Server
+paths:
+  /api/v2/databases:
+    get:
+      summary: List all databases
+      description: Retrieve a list of databases
+      operationId: listDatabases
+      tags:
+        - databases
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of databases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Databases'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a databases
+      description: Create a new databases record
+      operationId: createDatabases
+      tags:
+        - databases
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatabasesInput'
+      responses:
+        '201':
+          description: Databases created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Databases'
+  /api/v2/databases/{id}:
+    get:
+      summary: Get databases by ID
+      description: Retrieve a single databases by its ID
+      operationId: getDatabasesById
+      tags:
+        - databases
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the databases
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with databases details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Databases'
+        '404':
+          description: Databases not found
+    put:
+      summary: Update databases
+      description: Update an existing databases
+      operationId: updateDatabases
+      tags:
+        - databases
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the databases
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatabasesInput'
+      responses:
+        '200':
+          description: Databases updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Databases'
+        '404':
+          description: Databases not found
+    delete:
+      summary: Delete databases
+      description: Delete a databases by its ID
+      operationId: deleteDatabases
+      tags:
+        - databases
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the databases
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Databases deleted successfully
+        '404':
+          description: Databases not found
+  /api/v2/schemas:
+    get:
+      summary: List all schemas
+      description: Retrieve a list of schemas
+      operationId: listSchemas
+      tags:
+        - schemas
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of schemas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Schemas'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a schemas
+      description: Create a new schemas record
+      operationId: createSchemas
+      tags:
+        - schemas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchemasInput'
+      responses:
+        '201':
+          description: Schemas created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schemas'
+  /api/v2/schemas/{id}:
+    get:
+      summary: Get schemas by ID
+      description: Retrieve a single schemas by its ID
+      operationId: getSchemasById
+      tags:
+        - schemas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the schemas
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with schemas details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schemas'
+        '404':
+          description: Schemas not found
+    put:
+      summary: Update schemas
+      description: Update an existing schemas
+      operationId: updateSchemas
+      tags:
+        - schemas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the schemas
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchemasInput'
+      responses:
+        '200':
+          description: Schemas updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schemas'
+        '404':
+          description: Schemas not found
+    delete:
+      summary: Delete schemas
+      description: Delete a schemas by its ID
+      operationId: deleteSchemas
+      tags:
+        - schemas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the schemas
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Schemas deleted successfully
+        '404':
+          description: Schemas not found
+  /api/v2/warehouses:
+    get:
+      summary: List all warehouses
+      description: Retrieve a list of warehouses
+      operationId: listWarehouses
+      tags:
+        - warehouses
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of warehouses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Warehouses'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a warehouses
+      description: Create a new warehouses record
+      operationId: createWarehouses
+      tags:
+        - warehouses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarehousesInput'
+      responses:
+        '201':
+          description: Warehouses created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Warehouses'
+  /api/v2/warehouses/{id}:
+    get:
+      summary: Get warehouses by ID
+      description: Retrieve a single warehouses by its ID
+      operationId: getWarehousesById
+      tags:
+        - warehouses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the warehouses
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with warehouses details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Warehouses'
+        '404':
+          description: Warehouses not found
+    put:
+      summary: Update warehouses
+      description: Update an existing warehouses
+      operationId: updateWarehouses
+      tags:
+        - warehouses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the warehouses
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarehousesInput'
+      responses:
+        '200':
+          description: Warehouses updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Warehouses'
+        '404':
+          description: Warehouses not found
+    delete:
+      summary: Delete warehouses
+      description: Delete a warehouses by its ID
+      operationId: deleteWarehouses
+      tags:
+        - warehouses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the warehouses
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Warehouses deleted successfully
+        '404':
+          description: Warehouses not found
+  /api/v2/customers:
+    get:
+      summary: List all customers
+      description: Retrieve a list of customers
+      operationId: listCustomers
+      tags:
+        - customers
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customers'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a customers
+      description: Create a new customers record
+      operationId: createCustomers
+      tags:
+        - customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomersInput'
+      responses:
+        '201':
+          description: Customers created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customers'
+  /api/v2/customers/{id}:
+    get:
+      summary: Get customers by ID
+      description: Retrieve a single customers by its ID
+      operationId: getCustomersById
+      tags:
+        - customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the customers
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with customers details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customers'
+        '404':
+          description: Customers not found
+    put:
+      summary: Update customers
+      description: Update an existing customers
+      operationId: updateCustomers
+      tags:
+        - customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the customers
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomersInput'
+      responses:
+        '200':
+          description: Customers updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customers'
+        '404':
+          description: Customers not found
+    delete:
+      summary: Delete customers
+      description: Delete a customers by its ID
+      operationId: deleteCustomers
+      tags:
+        - customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the customers
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Customers deleted successfully
+        '404':
+          description: Customers not found
+  /api/v2/orders:
+    get:
+      summary: List all orders
+      description: Retrieve a list of orders
+      operationId: listOrders
+      tags:
+        - orders
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Orders'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a orders
+      description: Create a new orders record
+      operationId: createOrders
+      tags:
+        - orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersInput'
+      responses:
+        '201':
+          description: Orders created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orders'
+  /api/v2/orders/{id}:
+    get:
+      summary: Get orders by ID
+      description: Retrieve a single orders by its ID
+      operationId: getOrdersById
+      tags:
+        - orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the orders
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with orders details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orders'
+        '404':
+          description: Orders not found
+    put:
+      summary: Update orders
+      description: Update an existing orders
+      operationId: updateOrders
+      tags:
+        - orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the orders
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersInput'
+      responses:
+        '200':
+          description: Orders updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orders'
+        '404':
+          description: Orders not found
+    delete:
+      summary: Delete orders
+      description: Delete a orders by its ID
+      operationId: deleteOrders
+      tags:
+        - orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the orders
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Orders deleted successfully
+        '404':
+          description: Orders not found
+  /api/v2/products:
+    get:
+      summary: List all products
+      description: Retrieve a list of products
+      operationId: listProducts
+      tags:
+        - products
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Products'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a products
+      description: Create a new products record
+      operationId: createProducts
+      tags:
+        - products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductsInput'
+      responses:
+        '201':
+          description: Products created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Products'
+  /api/v2/products/{id}:
+    get:
+      summary: Get products by ID
+      description: Retrieve a single products by its ID
+      operationId: getProductsById
+      tags:
+        - products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the products
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with products details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Products'
+        '404':
+          description: Products not found
+    put:
+      summary: Update products
+      description: Update an existing products
+      operationId: updateProducts
+      tags:
+        - products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the products
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductsInput'
+      responses:
+        '200':
+          description: Products updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Products'
+        '404':
+          description: Products not found
+    delete:
+      summary: Delete products
+      description: Delete a products by its ID
+      operationId: deleteProducts
+      tags:
+        - products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the products
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Products deleted successfully
+        '404':
+          description: Products not found
+  /api/v2/order_items:
+    get:
+      summary: List all order_items
+      description: Retrieve a list of order_items
+      operationId: listOrder_items
+      tags:
+        - order_items
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of order_items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order_items'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a order_items
+      description: Create a new order_items record
+      operationId: createOrder_items
+      tags:
+        - order_items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order_itemsInput'
+      responses:
+        '201':
+          description: Order_items created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order_items'
+  /api/v2/order_items/{id}:
+    get:
+      summary: Get order_items by ID
+      description: Retrieve a single order_items by its ID
+      operationId: getOrder_itemsById
+      tags:
+        - order_items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the order_items
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with order_items details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order_items'
+        '404':
+          description: Order_items not found
+    put:
+      summary: Update order_items
+      description: Update an existing order_items
+      operationId: updateOrder_items
+      tags:
+        - order_items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the order_items
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order_itemsInput'
+      responses:
+        '200':
+          description: Order_items updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order_items'
+        '404':
+          description: Order_items not found
+    delete:
+      summary: Delete order_items
+      description: Delete a order_items by its ID
+      operationId: deleteOrder_items
+      tags:
+        - order_items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the order_items
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Order_items deleted successfully
+        '404':
+          description: Order_items not found
+  /api/v2/query_history:
+    get:
+      summary: List all query_history
+      description: Retrieve a list of query_history
+      operationId: listQuery_history
+      tags:
+        - query_history
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of query_history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Query_history'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a query_history
+      description: Create a new query_history record
+      operationId: createQuery_history
+      tags:
+        - query_history
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Query_historyInput'
+      responses:
+        '201':
+          description: Query_history created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Query_history'
+  /api/v2/query_history/{id}:
+    get:
+      summary: Get query_history by ID
+      description: Retrieve a single query_history by its ID
+      operationId: getQuery_historyById
+      tags:
+        - query_history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the query_history
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with query_history details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Query_history'
+        '404':
+          description: Query_history not found
+    put:
+      summary: Update query_history
+      description: Update an existing query_history
+      operationId: updateQuery_history
+      tags:
+        - query_history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the query_history
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Query_historyInput'
+      responses:
+        '200':
+          description: Query_history updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Query_history'
+        '404':
+          description: Query_history not found
+    delete:
+      summary: Delete query_history
+      description: Delete a query_history by its ID
+      operationId: deleteQuery_history
+      tags:
+        - query_history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the query_history
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Query_history deleted successfully
+        '404':
+          description: Query_history not found
+  /api/v2/statements:
+    get:
+      summary: List all statements
+      description: Retrieve a list of statements
+      operationId: listStatements
+      tags:
+        - statements
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response with list of statements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Statements'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+    post:
+      summary: Create a statements
+      description: Create a new statements record
+      operationId: createStatements
+      tags:
+        - statements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatementsInput'
+      responses:
+        '201':
+          description: Statements created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statements'
+  /api/v2/statements/{id}:
+    get:
+      summary: Get statements by ID
+      description: Retrieve a single statements by its ID
+      operationId: getStatementsById
+      tags:
+        - statements
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the statements
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response with statements details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statements'
+        '404':
+          description: Statements not found
+    put:
+      summary: Update statements
+      description: Update an existing statements
+      operationId: updateStatements
+      tags:
+        - statements
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the statements
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatementsInput'
+      responses:
+        '200':
+          description: Statements updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statements'
+        '404':
+          description: Statements not found
+    delete:
+      summary: Delete statements
+      description: Delete a statements by its ID
+      operationId: deleteStatements
+      tags:
+        - statements
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the statements
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Statements deleted successfully
+        '404':
+          description: Statements not found
+  /oauth/token-request:
+    post:
+      summary: Request OAuth access token
+      operationId: token
+      tags:
+        - authentication
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                  expires_in:
+                    type: integer
+                  refresh_token:
+                    type: string
+                  scope:
+                    type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  enum:
+                    - client_credentials
+                    - urn:ietf:params:oauth:grant-type:jwt-bearer
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+                scope:
+                  type: string
+              required:
+                - grant_type
+  /statements:
+    post:
+      summary: Execute a SQL statement asynchronously
+      operationId: executeStatement
+      tags:
+        - statements
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statementHandle:
+                    type: string
+                  statementStatusUrl:
+                    type: string
+                  resultSetMetaData:
+                    type: object
+                  data:
+                    type: array
+                  code:
+                    type: string
+                  sqlState:
+                    type: string
+                  message:
+                    type: string
+                  createdOn:
+                    type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                statement:
+                  type: string
+                  description: SQL statement to execute
+                timeout:
+                  type: integer
+                  description: Query timeout in seconds
+                database:
+                  type: string
+                  description: Database context for the statement
+                schema:
+                  type: string
+                  description: Schema context for the statement
+                warehouse:
+                  type: string
+                  description: Warehouse to execute the statement
+                role:
+                  type: string
+                  description: Role to use for execution
+                bindings:
+                  type: object
+                  description: Parameter bindings for prepared statements
+                parameters:
+                  type: object
+                  description: Session parameters
+              required:
+                - statement
+  /statements/:statementHandle:
+    get:
+      summary: Get the status of a statement execution
+      operationId: getStatementStatus
+      tags:
+        - statements
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statementHandle:
+                    type: string
+                  statementStatusUrl:
+                    type: string
+                  statementStatus:
+                    type: string
+                  code:
+                    type: string
+                  sqlState:
+                    type: string
+                  message:
+                    type: string
+                  createdOn:
+                    type: integer
+      parameters:
+        - name: statementHandle
+          in: path
+          required: true
+          description: Unique identifier for the statement
+          schema:
+            type: string
+  /statements/:statementHandle/result:
+    get:
+      summary: Get the result of a completed statement
+      operationId: getStatementResult
+      tags:
+        - statements
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resultSetMetaData:
+                    type: object
+                  data:
+                    type: array
+                  code:
+                    type: string
+                  sqlState:
+                    type: string
+                  message:
+                    type: string
+      parameters:
+        - name: statementHandle
+          in: path
+          required: true
+          description: Unique identifier for the statement
+          schema:
+            type: string
+        - name: partition
+          in: query
+          description: Result partition index (for large results)
+          schema:
+            type: integer
+  /statements/:statementHandle/cancel:
+    post:
+      summary: Cancel a running statement
+      operationId: cancelStatement
+      tags:
+        - statements
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statementHandle:
+                    type: string
+                  statementStatus:
+                    type: string
+                  message:
+                    type: string
+      parameters:
+        - name: statementHandle
+          in: path
+          required: true
+          description: Unique identifier for the statement to cancel
+          schema:
+            type: string
+components:
+  schemas:
+    Databases:
+      type: object
+      description: Snowflake database objects
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        owner:
+          type: string
+          default: ACCOUNTADMIN
+        comment:
+          type: string
+        retention_time:
+          type: integer
+          default: 1
+        is_transient:
+          type: boolean
+          default: false
+        is_current:
+          type: boolean
+          default: false
+        created_on:
+          type: string
+          format: date-time
+      required:
+        - name
+        - owner
+        - created_on
+    DatabasesInput:
+      type: object
+      description: Input schema for creating/updating snowflake_databases
+      properties:
+        name:
+          type: string
+        owner:
+          type: string
+          default: ACCOUNTADMIN
+        comment:
+          type: string
+        retention_time:
+          type: integer
+          default: 1
+        is_transient:
+          type: boolean
+          default: false
+        is_current:
+          type: boolean
+          default: false
+        created_on:
+          type: string
+          format: date-time
+      required:
+        - name
+        - owner
+        - created_on
+    Schemas:
+      type: object
+      description: Snowflake schema objects within databases
+      properties:
+        id:
+          type: string
+          format: uuid
+        database_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        owner:
+          type: string
+          default: SYSADMIN
+        comment:
+          type: string
+        retention_time:
+          type: integer
+          default: 1
+        is_transient:
+          type: boolean
+          default: false
+        is_managed_access:
+          type: boolean
+          default: false
+        created_on:
+          type: string
+          format: date-time
+      required:
+        - database_id
+        - name
+        - owner
+        - created_on
+    SchemasInput:
+      type: object
+      description: Input schema for creating/updating snowflake_schemas
+      properties:
+        database_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        owner:
+          type: string
+          default: SYSADMIN
+        comment:
+          type: string
+        retention_time:
+          type: integer
+          default: 1
+        is_transient:
+          type: boolean
+          default: false
+        is_managed_access:
+          type: boolean
+          default: false
+        created_on:
+          type: string
+          format: date-time
+      required:
+        - database_id
+        - name
+        - owner
+        - created_on
+    Warehouses:
+      type: object
+      description: Snowflake virtual warehouse compute resources
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        state:
+          type: string
+        size:
+          type: string
+        type:
+          type: string
+          default: STANDARD
+        min_cluster_count:
+          type: integer
+          default: 1
+        max_cluster_count:
+          type: integer
+          default: 1
+        auto_suspend:
+          type: integer
+          description: Auto-suspend timeout in seconds
+          default: 600
+        auto_resume:
+          type: boolean
+          default: true
+        owner:
+          type: string
+          default: SYSADMIN
+        comment:
+          type: string
+        scaling_policy:
+          type: string
+        created_on:
+          type: string
+          format: date-time
+        resumed_on:
+          type: string
+          format: date-time
+      required:
+        - name
+        - state
+        - size
+        - type
+        - owner
+        - created_on
+    WarehousesInput:
+      type: object
+      description: Input schema for creating/updating snowflake_warehouses
+      properties:
+        name:
+          type: string
+        state:
+          type: string
+        size:
+          type: string
+        type:
+          type: string
+          default: STANDARD
+        min_cluster_count:
+          type: integer
+          default: 1
+        max_cluster_count:
+          type: integer
+          default: 1
+        auto_suspend:
+          type: integer
+          description: Auto-suspend timeout in seconds
+          default: 600
+        auto_resume:
+          type: boolean
+          default: true
+        owner:
+          type: string
+          default: SYSADMIN
+        comment:
+          type: string
+        scaling_policy:
+          type: string
+        created_on:
+          type: string
+          format: date-time
+        resumed_on:
+          type: string
+          format: date-time
+      required:
+        - name
+        - state
+        - size
+        - type
+        - owner
+        - created_on
+    Customers:
+      type: object
+      description: Sample customer data for query testing
+      properties:
+        id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postal_code:
+          type: string
+        country:
+          type: string
+        industry:
+          type: string
+        company_size:
+          type: string
+        annual_revenue:
+          type: number
+          format: double
+        account_status:
+          type: string
+        segment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - customer_id
+        - name
+        - email
+        - account_status
+        - created_at
+        - updated_at
+    CustomersInput:
+      type: object
+      description: Input schema for creating/updating snowflake_sample_customers
+      properties:
+        customer_id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postal_code:
+          type: string
+        country:
+          type: string
+        industry:
+          type: string
+        company_size:
+          type: string
+        annual_revenue:
+          type: number
+          format: double
+        account_status:
+          type: string
+        segment:
+          type: string
+      required:
+        - customer_id
+        - name
+        - email
+        - account_status
+    Orders:
+      type: object
+      description: Sample order data for query testing
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+        customer_id:
+          type: string
+          format: uuid
+        order_date:
+          type: string
+          format: date-time
+        ship_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+        shipping_method:
+          type: string
+        shipping_address:
+          type: string
+        shipping_city:
+          type: string
+        shipping_state:
+          type: string
+        shipping_postal_code:
+          type: string
+        shipping_country:
+          type: string
+        subtotal:
+          type: number
+          format: double
+        tax_amount:
+          type: number
+          format: double
+        shipping_amount:
+          type: number
+          format: double
+        discount_amount:
+          type: number
+          format: double
+        total_amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        payment_method:
+          type: string
+        payment_status:
+          type: string
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - order_id
+        - customer_id
+        - order_date
+        - status
+        - subtotal
+        - tax_amount
+        - total_amount
+        - currency
+        - payment_status
+        - created_at
+        - updated_at
+    OrdersInput:
+      type: object
+      description: Input schema for creating/updating snowflake_sample_orders
+      properties:
+        order_id:
+          type: string
+        customer_id:
+          type: string
+          format: uuid
+        order_date:
+          type: string
+          format: date-time
+        ship_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+        shipping_method:
+          type: string
+        shipping_address:
+          type: string
+        shipping_city:
+          type: string
+        shipping_state:
+          type: string
+        shipping_postal_code:
+          type: string
+        shipping_country:
+          type: string
+        subtotal:
+          type: number
+          format: double
+        tax_amount:
+          type: number
+          format: double
+        shipping_amount:
+          type: number
+          format: double
+        discount_amount:
+          type: number
+          format: double
+        total_amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        payment_method:
+          type: string
+        payment_status:
+          type: string
+        notes:
+          type: string
+      required:
+        - order_id
+        - customer_id
+        - order_date
+        - status
+        - subtotal
+        - tax_amount
+        - total_amount
+        - currency
+        - payment_status
+    Products:
+      type: object
+      description: Sample product catalog for query testing
+      properties:
+        id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        subcategory:
+          type: string
+        brand:
+          type: string
+        unit_price:
+          type: number
+          format: double
+        cost_price:
+          type: number
+          format: double
+        currency:
+          type: string
+          default: USD
+        stock_quantity:
+          type: integer
+        reorder_level:
+          type: integer
+        weight:
+          type: number
+          format: double
+          description: Weight in pounds
+        dimensions:
+          type: object
+          description: Product dimensions in inches (L x W x H)
+        is_active:
+          type: boolean
+          default: true
+        is_taxable:
+          type: boolean
+          default: true
+        tax_class:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - product_id
+        - sku
+        - name
+        - category
+        - unit_price
+        - currency
+        - stock_quantity
+        - is_active
+        - is_taxable
+        - created_at
+        - updated_at
+    ProductsInput:
+      type: object
+      description: Input schema for creating/updating snowflake_sample_products
+      properties:
+        product_id:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        subcategory:
+          type: string
+        brand:
+          type: string
+        unit_price:
+          type: number
+          format: double
+        cost_price:
+          type: number
+          format: double
+        currency:
+          type: string
+          default: USD
+        stock_quantity:
+          type: integer
+        reorder_level:
+          type: integer
+        weight:
+          type: number
+          format: double
+          description: Weight in pounds
+        dimensions:
+          type: object
+          description: Product dimensions in inches (L x W x H)
+        is_active:
+          type: boolean
+          default: true
+        is_taxable:
+          type: boolean
+          default: true
+        tax_class:
+          type: string
+      required:
+        - product_id
+        - sku
+        - name
+        - category
+        - unit_price
+        - currency
+        - stock_quantity
+        - is_active
+        - is_taxable
+    Order_items:
+      type: object
+      description: Sample order line items for query testing
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_item_id:
+          type: string
+        order_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+          format: double
+        discount_percent:
+          type: number
+          format: double
+        discount_amount:
+          type: number
+          format: double
+        tax_amount:
+          type: number
+          format: double
+        line_total:
+          type: number
+          format: double
+        fulfillment_status:
+          type: string
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - order_item_id
+        - order_id
+        - product_id
+        - quantity
+        - unit_price
+        - line_total
+        - created_at
+        - updated_at
+    Order_itemsInput:
+      type: object
+      description: Input schema for creating/updating snowflake_sample_order_items
+      properties:
+        order_item_id:
+          type: string
+        order_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+          format: double
+        discount_percent:
+          type: number
+          format: double
+        discount_amount:
+          type: number
+          format: double
+        tax_amount:
+          type: number
+          format: double
+        line_total:
+          type: number
+          format: double
+        fulfillment_status:
+          type: string
+        notes:
+          type: string
+      required:
+        - order_item_id
+        - order_id
+        - product_id
+        - quantity
+        - unit_price
+        - line_total
+    Query_history:
+      type: object
+      description: Query execution history for monitoring
+      properties:
+        id:
+          type: string
+          format: uuid
+        query_id:
+          type: string
+        query_text:
+          type: string
+        database_name:
+          type: string
+        schema_name:
+          type: string
+        warehouse_name:
+          type: string
+        user_name:
+          type: string
+        role_name:
+          type: string
+        execution_status:
+          type: string
+        error_code:
+          type: string
+        error_message:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        total_elapsed_time:
+          type: integer
+          description: Total execution time in milliseconds
+        bytes_scanned:
+          type: integer
+        rows_produced:
+          type: integer
+        credits_used_cloud_services:
+          type: number
+          format: double
+      required:
+        - query_id
+        - query_text
+        - user_name
+        - execution_status
+        - start_time
+    Query_historyInput:
+      type: object
+      description: Input schema for creating/updating snowflake_query_history
+      properties:
+        query_id:
+          type: string
+        query_text:
+          type: string
+        database_name:
+          type: string
+        schema_name:
+          type: string
+        warehouse_name:
+          type: string
+        user_name:
+          type: string
+        role_name:
+          type: string
+        execution_status:
+          type: string
+        error_code:
+          type: string
+        error_message:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        total_elapsed_time:
+          type: integer
+          description: Total execution time in milliseconds
+        bytes_scanned:
+          type: integer
+        rows_produced:
+          type: integer
+        credits_used_cloud_services:
+          type: number
+          format: double
+      required:
+        - query_id
+        - query_text
+        - user_name
+        - execution_status
+        - start_time
+    Statements:
+      type: object
+      description: Active and completed SQL statement executions
+      properties:
+        id:
+          type: string
+          format: uuid
+        statement_handle:
+          type: string
+        statement:
+          type: string
+        status:
+          type: string
+        sql_state:
+          type: string
+          default: '00000'
+        code:
+          type: string
+          default: '090001'
+        message:
+          type: string
+        database:
+          type: string
+        schema:
+          type: string
+        warehouse:
+          type: string
+        role:
+          type: string
+        num_rows:
+          type: integer
+        result_data:
+          type: object
+        result_metadata:
+          type: object
+        created_on:
+          type: string
+          format: date-time
+        completed_on:
+          type: string
+          format: date-time
+      required:
+        - statement_handle
+        - statement
+        - status
+        - created_on
+    StatementsInput:
+      type: object
+      description: Input schema for creating/updating snowflake_statements
+      properties:
+        statement_handle:
+          type: string
+        statement:
+          type: string
+        status:
+          type: string
+        sql_state:
+          type: string
+          default: '00000'
+        code:
+          type: string
+          default: '090001'
+        message:
+          type: string
+        database:
+          type: string
+        schema:
+          type: string
+        warehouse:
+          type: string
+        role:
+          type: string
+        num_rows:
+          type: integer
+        result_data:
+          type: object
+        result_metadata:
+          type: object
+        created_on:
+          type: string
+          format: date-time
+        completed_on:
+          type: string
+          format: date-time
+      required:
+        - statement_handle
+        - statement
+        - status
+        - created_on
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        sqlState:
+          type: string
+        message:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []

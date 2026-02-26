@@ -40,7 +40,7 @@ export interface SchemaInferenceOptions {
   /** Anthropic API key for LLM inference */
   anthropicApiKey?: string;
   /** Force specific parser */
-  forceParser?: 'openapi' | 'llm' | 'json' | 'large-docs';
+  forceParser?: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent';
   /** Enable verbose logging */
   verbose?: boolean;
   /** Output path to save schema */
@@ -113,6 +113,15 @@ class SchemaInferrerService {
       logger.info(
         `SchemaInferrer: Successfully parsed schema with ${result.schema.entities.length} entities`
       );
+
+      // Log additional details for LLM agent parser
+      if (result.parserUsed === 'llm-agent') {
+        const agentMeta = result.metadata as Record<string, unknown>;
+        logger.info(
+          `SchemaInferrer: LLM Agent completed in ${agentMeta.iterations} iterations, ` +
+          `${agentMeta.tokensUsed} tokens, ${agentMeta.toolCalls} tool calls`
+        );
+      }
 
       return {
         success: true,

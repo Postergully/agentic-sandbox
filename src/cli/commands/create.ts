@@ -100,16 +100,6 @@ export function createCreateCommand(): Command {
         const jobId = options.job || uuidv4().split('-')[0];
         const instanceId = generateInstanceId(options.connector, options.org, jobId);
 
-        spinner.text = `Checking if instance ${instanceId} already exists...`;
-
-        // Check if instance already exists
-        const existing = await registryService.get(instanceId);
-        if (existing) {
-          spinner.fail(chalk.red(`Instance ${instanceId} already exists`));
-          console.log(chalk.gray(`Use 'mock-factory delete ${instanceId}' to remove it first.`));
-          process.exit(1);
-        }
-
         // Build pipeline input
         const outputDir = path.resolve(options.outputDir, jobId);
         const pipelineInput: PipelineInput = {
@@ -129,7 +119,7 @@ export function createCreateCommand(): Command {
           dryRun: options.dryRun,
         };
 
-        // Dry run - show plan only
+        // Dry run - show plan only (no DB needed)
         if (options.dryRun) {
           spinner.succeed('Pipeline configuration (dry run):');
           console.log(chalk.cyan('\nPipeline Input:'));
@@ -146,6 +136,16 @@ export function createCreateCommand(): Command {
           }
           console.log(chalk.gray('  5. Registry & Credentials'));
           return;
+        }
+
+        spinner.text = `Checking if instance ${instanceId} already exists...`;
+
+        // Check if instance already exists (requires DB)
+        const existing = await registryService.get(instanceId);
+        if (existing) {
+          spinner.fail(chalk.red(`Instance ${instanceId} already exists`));
+          console.log(chalk.gray(`Use 'mock-factory delete ${instanceId}' to remove it first.`));
+          process.exit(1);
         }
 
         // Execute the full factory pipeline
