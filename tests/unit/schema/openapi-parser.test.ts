@@ -2,7 +2,7 @@
  * Tests for OpenAPI Parser
  */
 
-import { OpenAPIParser, isOpenAPISpec } from '../../../src/schema/parsers/openapi-parser';
+import { OpenAPIParser, isOpenAPISpec, _extractEntityNameFromPath } from '../../../src/schema/parsers/openapi-parser';
 import type { OpenAPIV3 } from 'openapi-types';
 
 describe('OpenAPIParser', () => {
@@ -347,6 +347,44 @@ describe('OpenAPIParser', () => {
       expect(fields.find((f) => f.name === 'city')?.faker).toBe('location.city');
       expect(fields.find((f) => f.name === 'website')?.faker).toBe('internet.url');
       expect(fields.find((f) => f.name === 'description')?.faker).toBe('lorem.sentence');
+    });
+  });
+
+  describe('_extractEntityNameFromPath', () => {
+    it('should extract entity from simple path', () => {
+      expect(_extractEntityNameFromPath('/customers/{id}')).toBe('Customer');
+    });
+
+    it('should skip version prefix v1', () => {
+      expect(_extractEntityNameFromPath('/v1/public/contracts/{id}')).toBe('Contract');
+    });
+
+    it('should skip version prefix v2 and internal', () => {
+      expect(_extractEntityNameFromPath('/v2/internal/users')).toBe('User');
+    });
+
+    it('should skip api prefix and version', () => {
+      expect(_extractEntityNameFromPath('/api/v3/orders/{orderId}/items')).toBe('Order');
+    });
+
+    it('should handle path without version prefix', () => {
+      expect(_extractEntityNameFromPath('/customers/{id}')).toBe('Customer');
+    });
+
+    it('should singularize after filtering version', () => {
+      expect(_extractEntityNameFromPath('/v1/companies')).toBe('Company');
+    });
+
+    it('should handle api prefix without version', () => {
+      expect(_extractEntityNameFromPath('/api/invoices')).toBe('Invoice');
+    });
+
+    it('should handle decimal version like v1.2', () => {
+      expect(_extractEntityNameFromPath('/v1.2/products')).toBe('Product');
+    });
+
+    it('should return Root for empty path', () => {
+      expect(_extractEntityNameFromPath('/')).toBe('Root');
     });
   });
 });

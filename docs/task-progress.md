@@ -587,6 +587,29 @@ $ mock-factory list
 
 ## Session Log
 
+### 2026-02-16 (Session 7)
+**Fix: URL Content Detection Short-Circuit (Issue #2)**
+
+Fixed a bug where the URL content detection layer correctly fetched and parsed OpenAPI specs but then threw the content away. The pipeline re-fetched the URL via swagger-parser with different `Accept` headers, causing servers with content negotiation (like SpotDraft) to return HTML instead of the spec YAML.
+
+**Root Cause:** Three issues in `src/schema/parsers/index.ts`:
+1. Lines 373-378: URL detection found OpenAPI but only set `parserToUse = 'openapi'` and fell through to the switch, which re-fetched via `parseOpenAPI(url)`
+2. Line 440: Discovered spec URL branch also re-fetched instead of using pre-fetched content
+3. Pre-fetched Swagger 2.0 content needed `SwaggerParser.dereference()` for `$ref` resolution before passing to `parseDocument()`
+
+**Additional Fix:** `src/schema/parsers/openapi-parser.ts` — Added `toSemver()` helper to normalize non-semver `info.version` values (e.g., SpotDraft's `v1` → `1.0.0`), which would fail ConnectorSchema validation.
+
+**Files Changed:**
+- `src/schema/parsers/index.ts` — Import `SwaggerParser`, short-circuit both OpenAPI branches to parse pre-fetched content directly via `SwaggerParser.dereference()` + `parser.parseDocument()`
+- `src/schema/parsers/openapi-parser.ts` — Add `toSemver()` helper, use it for `version` field in schema output
+
+**Verified:**
+```bash
+npm run cli -- create -c spotdraft -o testorg --api-docs https://api.spotdraft.com/api/docs/ --skip-ssl
+# ✅ All 5 stages passed: schema_inference (1997ms), openapi_generation, data_generation, wiremock_setup, registry_credentials
+# ✅ 3 entities extracted from Swagger 2.0 spec
+```
+
 ### 2026-02-05 (Session 6)
 **Factory CLI Tool Complete**
 

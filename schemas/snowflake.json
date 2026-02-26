@@ -1,0 +1,1456 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "connectorId": "snowflake",
+  "connectorName": "Snowflake",
+  "connectorType": "data_warehouse",
+  "version": "1.0.0",
+  "description": "Snowflake Data Cloud - SQL REST API mock server for AI agent testing",
+
+  "authentication": {
+    "type": "oauth2",
+    "flows": ["client_credentials", "jwt_bearer"],
+    "endpoints": {
+      "token": "/oauth/token-request"
+    },
+    "fields": [
+      "account_identifier",
+      "client_id",
+      "client_secret",
+      "username",
+      "role",
+      "warehouse"
+    ],
+    "config": {
+      "tokenType": "Bearer",
+      "headerFormat": "Authorization: Bearer {access_token}"
+    },
+    "mockBehavior": {
+      "acceptAnyCredentials": true,
+      "tokenExpiresIn": 3600,
+      "refreshTokenEnabled": true
+    }
+  },
+
+  "baseUrl": "/api/v2",
+
+  "entities": {
+    "databases": {
+      "table": "snowflake_databases",
+      "snowflakeObjectName": "DATABASE",
+      "description": "Snowflake database objects",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "DATABASE_NAME",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["PRODUCTION_DB", "ANALYTICS_DB", "STAGING_DB", "DEV_DB", "RAW_DATA_DB", "TRANSFORMED_DB"]]
+        },
+        {
+          "name": "owner",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "DATABASE_OWNER",
+          "default": "ACCOUNTADMIN"
+        },
+        {
+          "name": "comment",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "COMMENT",
+          "faker": "lorem.sentence"
+        },
+        {
+          "name": "retention_time",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "RETENTION_TIME",
+          "default": 1
+        },
+        {
+          "name": "is_transient",
+          "type": "boolean",
+          "required": false,
+          "snowflakeName": "IS_TRANSIENT",
+          "default": false
+        },
+        {
+          "name": "is_current",
+          "type": "boolean",
+          "required": false,
+          "snowflakeName": "IS_CURRENT",
+          "default": false
+        },
+        {
+          "name": "created_on",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "CREATED_ON",
+          "faker": "date.past"
+        }
+      ]
+    },
+
+    "schemas": {
+      "table": "snowflake_schemas",
+      "snowflakeObjectName": "SCHEMA",
+      "description": "Snowflake schema objects within databases",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "database_id",
+          "type": "uuid",
+          "required": true,
+          "foreignKey": {
+            "table": "snowflake_databases",
+            "column": "id"
+          }
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "SCHEMA_NAME",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["PUBLIC", "RAW", "STAGING", "ANALYTICS", "REPORTING", "DIM", "FACT"]]
+        },
+        {
+          "name": "owner",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "SCHEMA_OWNER",
+          "default": "SYSADMIN"
+        },
+        {
+          "name": "comment",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "COMMENT",
+          "faker": "lorem.sentence"
+        },
+        {
+          "name": "retention_time",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "RETENTION_TIME",
+          "default": 1
+        },
+        {
+          "name": "is_transient",
+          "type": "boolean",
+          "required": false,
+          "snowflakeName": "IS_TRANSIENT",
+          "default": false
+        },
+        {
+          "name": "is_managed_access",
+          "type": "boolean",
+          "required": false,
+          "snowflakeName": "IS_MANAGED_ACCESS",
+          "default": false
+        },
+        {
+          "name": "created_on",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "CREATED_ON",
+          "faker": "date.past"
+        }
+      ]
+    },
+
+    "warehouses": {
+      "table": "snowflake_warehouses",
+      "snowflakeObjectName": "WAREHOUSE",
+      "description": "Snowflake virtual warehouse compute resources",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "WAREHOUSE_NAME",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["COMPUTE_WH", "LOAD_WH", "TRANSFORM_WH", "ANALYTICS_WH", "REPORTING_WH", "DEV_WH"]]
+        },
+        {
+          "name": "state",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "STATE",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["STARTED", "SUSPENDED", "RESIZING"]]
+        },
+        {
+          "name": "size",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "SIZE",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["X-Small", "Small", "Medium", "Large", "X-Large", "2X-Large", "3X-Large", "4X-Large"]]
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "TYPE",
+          "default": "STANDARD"
+        },
+        {
+          "name": "min_cluster_count",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "MIN_CLUSTER_COUNT",
+          "default": 1
+        },
+        {
+          "name": "max_cluster_count",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "MAX_CLUSTER_COUNT",
+          "default": 1
+        },
+        {
+          "name": "auto_suspend",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "AUTO_SUSPEND",
+          "default": 600,
+          "description": "Auto-suspend timeout in seconds"
+        },
+        {
+          "name": "auto_resume",
+          "type": "boolean",
+          "required": false,
+          "snowflakeName": "AUTO_RESUME",
+          "default": true
+        },
+        {
+          "name": "owner",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "OWNER",
+          "default": "SYSADMIN"
+        },
+        {
+          "name": "comment",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "COMMENT",
+          "faker": "lorem.sentence"
+        },
+        {
+          "name": "scaling_policy",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SCALING_POLICY",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["STANDARD", "ECONOMY"]]
+        },
+        {
+          "name": "created_on",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "CREATED_ON",
+          "faker": "date.past"
+        },
+        {
+          "name": "resumed_on",
+          "type": "timestamp",
+          "required": false,
+          "snowflakeName": "RESUMED_ON",
+          "faker": "date.recent"
+        }
+      ]
+    },
+
+    "customers": {
+      "table": "snowflake_sample_customers",
+      "snowflakeTableName": "CUSTOMERS",
+      "snowflakeSchema": "PUBLIC",
+      "snowflakeDatabase": "SAMPLE_DATA",
+      "description": "Sample customer data for query testing",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "customer_id",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "CUSTOMER_ID",
+          "faker": "string.alphanumeric",
+          "fakerArgs": [{ "length": 10, "casing": "upper" }]
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "NAME",
+          "faker": "company.name"
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "EMAIL",
+          "faker": "internet.email"
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "PHONE",
+          "faker": "phone.number"
+        },
+        {
+          "name": "address",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "ADDRESS",
+          "faker": "location.streetAddress"
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "CITY",
+          "faker": "location.city"
+        },
+        {
+          "name": "state",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "STATE",
+          "faker": "location.state",
+          "fakerArgs": [{ "abbreviated": true }]
+        },
+        {
+          "name": "postal_code",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "POSTAL_CODE",
+          "faker": "location.zipCode"
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "COUNTRY",
+          "faker": "location.countryCode",
+          "fakerArgs": ["alpha-2"]
+        },
+        {
+          "name": "industry",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "INDUSTRY",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["Technology", "Healthcare", "Finance", "Retail", "Manufacturing", "Education", "Government", "Media", "Energy", "Transportation"]]
+        },
+        {
+          "name": "company_size",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "COMPANY_SIZE",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5000+"]]
+        },
+        {
+          "name": "annual_revenue",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "ANNUAL_REVENUE",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 100000, "max": 100000000, "dec": 2 }]
+        },
+        {
+          "name": "account_status",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "ACCOUNT_STATUS",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["ACTIVE", "INACTIVE", "PROSPECT", "CHURNED"]]
+        },
+        {
+          "name": "segment",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SEGMENT",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["ENTERPRISE", "MID_MARKET", "SMB", "STARTUP"]]
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "CREATED_AT",
+          "faker": "date.past",
+          "fakerArgs": [{ "years": 3 }]
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "UPDATED_AT",
+          "faker": "date.recent",
+          "fakerArgs": [{ "days": 30 }]
+        }
+      ]
+    },
+
+    "orders": {
+      "table": "snowflake_sample_orders",
+      "snowflakeTableName": "ORDERS",
+      "snowflakeSchema": "PUBLIC",
+      "snowflakeDatabase": "SAMPLE_DATA",
+      "description": "Sample order data for query testing",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "order_id",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "ORDER_ID",
+          "faker": "string.alphanumeric",
+          "fakerArgs": [{ "length": 12, "casing": "upper", "prefix": "ORD-" }]
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "required": true,
+          "snowflakeName": "CUSTOMER_ID",
+          "foreignKey": {
+            "table": "snowflake_sample_customers",
+            "column": "id"
+          }
+        },
+        {
+          "name": "order_date",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "ORDER_DATE",
+          "faker": "date.past",
+          "fakerArgs": [{ "years": 2 }]
+        },
+        {
+          "name": "ship_date",
+          "type": "timestamp",
+          "required": false,
+          "snowflakeName": "SHIP_DATE",
+          "faker": "date.recent",
+          "fakerArgs": [{ "days": 60 }]
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "STATUS",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED"]]
+        },
+        {
+          "name": "shipping_method",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SHIPPING_METHOD",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["STANDARD", "EXPRESS", "OVERNIGHT", "FREIGHT", "PICKUP"]]
+        },
+        {
+          "name": "shipping_address",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SHIPPING_ADDRESS",
+          "faker": "location.streetAddress",
+          "fakerArgs": [true]
+        },
+        {
+          "name": "shipping_city",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SHIPPING_CITY",
+          "faker": "location.city"
+        },
+        {
+          "name": "shipping_state",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SHIPPING_STATE",
+          "faker": "location.state",
+          "fakerArgs": [{ "abbreviated": true }]
+        },
+        {
+          "name": "shipping_postal_code",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SHIPPING_POSTAL_CODE",
+          "faker": "location.zipCode"
+        },
+        {
+          "name": "shipping_country",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SHIPPING_COUNTRY",
+          "faker": "location.countryCode",
+          "fakerArgs": ["alpha-2"]
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal",
+          "required": true,
+          "snowflakeName": "SUBTOTAL",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 50, "max": 10000, "dec": 2 }]
+        },
+        {
+          "name": "tax_amount",
+          "type": "decimal",
+          "required": true,
+          "snowflakeName": "TAX_AMOUNT",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 5, "max": 1000, "dec": 2 }]
+        },
+        {
+          "name": "shipping_amount",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "SHIPPING_AMOUNT",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 0, "max": 200, "dec": 2 }]
+        },
+        {
+          "name": "discount_amount",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "DISCOUNT_AMOUNT",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 0, "max": 500, "dec": 2 }]
+        },
+        {
+          "name": "total_amount",
+          "type": "decimal",
+          "required": true,
+          "snowflakeName": "TOTAL_AMOUNT",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 50, "max": 15000, "dec": 2 }]
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "CURRENCY",
+          "faker": "finance.currencyCode"
+        },
+        {
+          "name": "payment_method",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "PAYMENT_METHOD",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["CREDIT_CARD", "DEBIT_CARD", "ACH", "WIRE", "CHECK", "PAYPAL"]]
+        },
+        {
+          "name": "payment_status",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "PAYMENT_STATUS",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["PENDING", "PAID", "PARTIALLY_PAID", "REFUNDED", "FAILED"]]
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "NOTES",
+          "faker": "lorem.sentence"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "CREATED_AT",
+          "faker": "date.past",
+          "fakerArgs": [{ "years": 2 }]
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "UPDATED_AT",
+          "faker": "date.recent",
+          "fakerArgs": [{ "days": 30 }]
+        }
+      ]
+    },
+
+    "products": {
+      "table": "snowflake_sample_products",
+      "snowflakeTableName": "PRODUCTS",
+      "snowflakeSchema": "PUBLIC",
+      "snowflakeDatabase": "SAMPLE_DATA",
+      "description": "Sample product catalog for query testing",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "product_id",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "PRODUCT_ID",
+          "faker": "string.alphanumeric",
+          "fakerArgs": [{ "length": 8, "casing": "upper", "prefix": "PRD-" }]
+        },
+        {
+          "name": "sku",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "SKU",
+          "faker": "string.alphanumeric",
+          "fakerArgs": [{ "length": 10, "casing": "upper" }]
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "NAME",
+          "faker": "commerce.productName"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "DESCRIPTION",
+          "faker": "commerce.productDescription"
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "CATEGORY",
+          "faker": "commerce.department"
+        },
+        {
+          "name": "subcategory",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SUBCATEGORY",
+          "faker": "commerce.productAdjective"
+        },
+        {
+          "name": "brand",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "BRAND",
+          "faker": "company.name"
+        },
+        {
+          "name": "unit_price",
+          "type": "decimal",
+          "required": true,
+          "snowflakeName": "UNIT_PRICE",
+          "faker": "commerce.price",
+          "fakerArgs": [{ "min": 1, "max": 5000, "dec": 2 }]
+        },
+        {
+          "name": "cost_price",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "COST_PRICE",
+          "faker": "commerce.price",
+          "fakerArgs": [{ "min": 1, "max": 3000, "dec": 2 }]
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "CURRENCY",
+          "default": "USD"
+        },
+        {
+          "name": "stock_quantity",
+          "type": "integer",
+          "required": true,
+          "snowflakeName": "STOCK_QUANTITY",
+          "faker": "number.int",
+          "fakerArgs": [{ "min": 0, "max": 10000 }]
+        },
+        {
+          "name": "reorder_level",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "REORDER_LEVEL",
+          "faker": "number.int",
+          "fakerArgs": [{ "min": 10, "max": 500 }]
+        },
+        {
+          "name": "weight",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "WEIGHT",
+          "faker": "number.float",
+          "fakerArgs": [{ "min": 0.1, "max": 100, "precision": 0.01 }],
+          "description": "Weight in pounds"
+        },
+        {
+          "name": "dimensions",
+          "type": "json",
+          "required": false,
+          "snowflakeName": "DIMENSIONS",
+          "description": "Product dimensions in inches (L x W x H)"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "snowflakeName": "IS_ACTIVE",
+          "default": true
+        },
+        {
+          "name": "is_taxable",
+          "type": "boolean",
+          "required": true,
+          "snowflakeName": "IS_TAXABLE",
+          "default": true
+        },
+        {
+          "name": "tax_class",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "TAX_CLASS",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["STANDARD", "REDUCED", "ZERO", "EXEMPT"]]
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "CREATED_AT",
+          "faker": "date.past",
+          "fakerArgs": [{ "years": 3 }]
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "UPDATED_AT",
+          "faker": "date.recent",
+          "fakerArgs": [{ "days": 30 }]
+        }
+      ]
+    },
+
+    "order_items": {
+      "table": "snowflake_sample_order_items",
+      "snowflakeTableName": "ORDER_ITEMS",
+      "snowflakeSchema": "PUBLIC",
+      "snowflakeDatabase": "SAMPLE_DATA",
+      "description": "Sample order line items for query testing",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "order_item_id",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "ORDER_ITEM_ID",
+          "faker": "string.alphanumeric",
+          "fakerArgs": [{ "length": 10, "casing": "upper", "prefix": "ITM-" }]
+        },
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "required": true,
+          "snowflakeName": "ORDER_ID",
+          "foreignKey": {
+            "table": "snowflake_sample_orders",
+            "column": "id"
+          }
+        },
+        {
+          "name": "product_id",
+          "type": "uuid",
+          "required": true,
+          "snowflakeName": "PRODUCT_ID",
+          "foreignKey": {
+            "table": "snowflake_sample_products",
+            "column": "id"
+          }
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "required": true,
+          "snowflakeName": "QUANTITY",
+          "faker": "number.int",
+          "fakerArgs": [{ "min": 1, "max": 100 }]
+        },
+        {
+          "name": "unit_price",
+          "type": "decimal",
+          "required": true,
+          "snowflakeName": "UNIT_PRICE",
+          "faker": "commerce.price",
+          "fakerArgs": [{ "min": 1, "max": 5000, "dec": 2 }]
+        },
+        {
+          "name": "discount_percent",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "DISCOUNT_PERCENT",
+          "faker": "number.float",
+          "fakerArgs": [{ "min": 0, "max": 50, "precision": 0.01 }]
+        },
+        {
+          "name": "discount_amount",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "DISCOUNT_AMOUNT",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 0, "max": 500, "dec": 2 }]
+        },
+        {
+          "name": "tax_amount",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "TAX_AMOUNT",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 0, "max": 500, "dec": 2 }]
+        },
+        {
+          "name": "line_total",
+          "type": "decimal",
+          "required": true,
+          "snowflakeName": "LINE_TOTAL",
+          "faker": "finance.amount",
+          "fakerArgs": [{ "min": 1, "max": 50000, "dec": 2 }]
+        },
+        {
+          "name": "fulfillment_status",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "FULFILLMENT_STATUS",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["PENDING", "ALLOCATED", "PICKED", "PACKED", "SHIPPED", "DELIVERED"]]
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "NOTES",
+          "faker": "lorem.sentence"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "CREATED_AT",
+          "faker": "date.past",
+          "fakerArgs": [{ "years": 2 }]
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "UPDATED_AT",
+          "faker": "date.recent",
+          "fakerArgs": [{ "days": 30 }]
+        }
+      ]
+    },
+
+    "query_history": {
+      "table": "snowflake_query_history",
+      "snowflakeTableName": "QUERY_HISTORY",
+      "snowflakeSchema": "ACCOUNT_USAGE",
+      "snowflakeDatabase": "SNOWFLAKE",
+      "description": "Query execution history for monitoring",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "query_id",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "QUERY_ID",
+          "faker": "string.uuid"
+        },
+        {
+          "name": "query_text",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "QUERY_TEXT"
+        },
+        {
+          "name": "database_name",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "DATABASE_NAME"
+        },
+        {
+          "name": "schema_name",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SCHEMA_NAME"
+        },
+        {
+          "name": "warehouse_name",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "WAREHOUSE_NAME"
+        },
+        {
+          "name": "user_name",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "USER_NAME"
+        },
+        {
+          "name": "role_name",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "ROLE_NAME"
+        },
+        {
+          "name": "execution_status",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "EXECUTION_STATUS",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["SUCCESS", "FAIL", "INCIDENT"]]
+        },
+        {
+          "name": "error_code",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "ERROR_CODE"
+        },
+        {
+          "name": "error_message",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "ERROR_MESSAGE"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "START_TIME",
+          "faker": "date.recent",
+          "fakerArgs": [{ "days": 7 }]
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "required": false,
+          "snowflakeName": "END_TIME",
+          "faker": "date.recent",
+          "fakerArgs": [{ "days": 7 }]
+        },
+        {
+          "name": "total_elapsed_time",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "TOTAL_ELAPSED_TIME",
+          "faker": "number.int",
+          "fakerArgs": [{ "min": 100, "max": 300000 }],
+          "description": "Total execution time in milliseconds"
+        },
+        {
+          "name": "bytes_scanned",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "BYTES_SCANNED",
+          "faker": "number.int",
+          "fakerArgs": [{ "min": 0, "max": 1000000000 }]
+        },
+        {
+          "name": "rows_produced",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "ROWS_PRODUCED",
+          "faker": "number.int",
+          "fakerArgs": [{ "min": 0, "max": 1000000 }]
+        },
+        {
+          "name": "credits_used_cloud_services",
+          "type": "decimal",
+          "required": false,
+          "snowflakeName": "CREDITS_USED_CLOUD_SERVICES",
+          "faker": "number.float",
+          "fakerArgs": [{ "min": 0, "max": 10, "precision": 0.0001 }]
+        }
+      ]
+    },
+
+    "statements": {
+      "table": "snowflake_statements",
+      "snowflakeObjectName": "STATEMENT",
+      "description": "Active and completed SQL statement executions",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "unique": true,
+          "primaryKey": true,
+          "faker": "string.uuid"
+        },
+        {
+          "name": "statement_handle",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "snowflakeName": "STATEMENT_HANDLE",
+          "faker": "string.uuid"
+        },
+        {
+          "name": "statement",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "STATEMENT"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "snowflakeName": "STATUS",
+          "faker": "helpers.arrayElement",
+          "fakerArgs": [["RUNNING", "SUCCESS", "FAILED_WITH_ERROR", "ABORTED"]]
+        },
+        {
+          "name": "sql_state",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SQL_STATE",
+          "default": "00000"
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "CODE",
+          "default": "090001"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "MESSAGE"
+        },
+        {
+          "name": "database",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "DATABASE"
+        },
+        {
+          "name": "schema",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "SCHEMA"
+        },
+        {
+          "name": "warehouse",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "WAREHOUSE"
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "snowflakeName": "ROLE"
+        },
+        {
+          "name": "num_rows",
+          "type": "integer",
+          "required": false,
+          "snowflakeName": "NUM_ROWS"
+        },
+        {
+          "name": "result_data",
+          "type": "json",
+          "required": false,
+          "snowflakeName": "RESULT_DATA"
+        },
+        {
+          "name": "result_metadata",
+          "type": "json",
+          "required": false,
+          "snowflakeName": "RESULT_METADATA"
+        },
+        {
+          "name": "created_on",
+          "type": "timestamp",
+          "required": true,
+          "snowflakeName": "CREATED_ON",
+          "faker": "date.recent",
+          "fakerArgs": [{ "days": 1 }]
+        },
+        {
+          "name": "completed_on",
+          "type": "timestamp",
+          "required": false,
+          "snowflakeName": "COMPLETED_ON"
+        }
+      ]
+    }
+  },
+
+  "endpoints": {
+    "authentication": {
+      "token": {
+        "method": "POST",
+        "path": "/oauth/token-request",
+        "description": "Request OAuth access token",
+        "requestBody": {
+          "type": "object",
+          "properties": {
+            "grant_type": {
+              "type": "string",
+              "enum": ["client_credentials", "urn:ietf:params:oauth:grant-type:jwt-bearer"]
+            },
+            "client_id": { "type": "string" },
+            "client_secret": { "type": "string" },
+            "scope": { "type": "string" }
+          },
+          "required": ["grant_type"]
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "access_token": { "type": "string" },
+            "token_type": { "type": "string" },
+            "expires_in": { "type": "integer" },
+            "refresh_token": { "type": "string" },
+            "scope": { "type": "string" }
+          }
+        }
+      }
+    },
+    "statements": {
+      "executeStatement": {
+        "method": "POST",
+        "path": "/statements",
+        "description": "Execute a SQL statement asynchronously",
+        "requestBody": {
+          "type": "object",
+          "properties": {
+            "statement": {
+              "type": "string",
+              "description": "SQL statement to execute"
+            },
+            "timeout": {
+              "type": "integer",
+              "description": "Query timeout in seconds"
+            },
+            "database": {
+              "type": "string",
+              "description": "Database context for the statement"
+            },
+            "schema": {
+              "type": "string",
+              "description": "Schema context for the statement"
+            },
+            "warehouse": {
+              "type": "string",
+              "description": "Warehouse to execute the statement"
+            },
+            "role": {
+              "type": "string",
+              "description": "Role to use for execution"
+            },
+            "bindings": {
+              "type": "object",
+              "description": "Parameter bindings for prepared statements"
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Session parameters"
+            }
+          },
+          "required": ["statement"]
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "statementHandle": { "type": "string" },
+            "statementStatusUrl": { "type": "string" },
+            "resultSetMetaData": { "type": "object" },
+            "data": { "type": "array" },
+            "code": { "type": "string" },
+            "sqlState": { "type": "string" },
+            "message": { "type": "string" },
+            "createdOn": { "type": "integer" }
+          }
+        }
+      },
+      "getStatementStatus": {
+        "method": "GET",
+        "path": "/statements/:statementHandle",
+        "description": "Get the status of a statement execution",
+        "pathParameters": {
+          "statementHandle": {
+            "type": "string",
+            "description": "Unique identifier for the statement"
+          }
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "statementHandle": { "type": "string" },
+            "statementStatusUrl": { "type": "string" },
+            "statementStatus": { "type": "string" },
+            "code": { "type": "string" },
+            "sqlState": { "type": "string" },
+            "message": { "type": "string" },
+            "createdOn": { "type": "integer" }
+          }
+        }
+      },
+      "getStatementResult": {
+        "method": "GET",
+        "path": "/statements/:statementHandle/result",
+        "description": "Get the result of a completed statement",
+        "pathParameters": {
+          "statementHandle": {
+            "type": "string",
+            "description": "Unique identifier for the statement"
+          }
+        },
+        "queryParameters": {
+          "partition": {
+            "type": "integer",
+            "description": "Result partition index (for large results)"
+          }
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "resultSetMetaData": { "type": "object" },
+            "data": { "type": "array" },
+            "code": { "type": "string" },
+            "sqlState": { "type": "string" },
+            "message": { "type": "string" }
+          }
+        }
+      },
+      "cancelStatement": {
+        "method": "POST",
+        "path": "/statements/:statementHandle/cancel",
+        "description": "Cancel a running statement",
+        "pathParameters": {
+          "statementHandle": {
+            "type": "string",
+            "description": "Unique identifier for the statement to cancel"
+          }
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "statementHandle": { "type": "string" },
+            "statementStatus": { "type": "string" },
+            "message": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+
+  "tableMapping": {
+    "CUSTOMERS": "snowflake_sample_customers",
+    "ORDERS": "snowflake_sample_orders",
+    "PRODUCTS": "snowflake_sample_products",
+    "ORDER_ITEMS": "snowflake_sample_order_items",
+    "SAMPLE_DATA.PUBLIC.CUSTOMERS": "snowflake_sample_customers",
+    "SAMPLE_DATA.PUBLIC.ORDERS": "snowflake_sample_orders",
+    "SAMPLE_DATA.PUBLIC.PRODUCTS": "snowflake_sample_products",
+    "SAMPLE_DATA.PUBLIC.ORDER_ITEMS": "snowflake_sample_order_items"
+  },
+
+  "snowflakeTypeMapping": {
+    "string": "TEXT",
+    "text": "TEXT",
+    "varchar": "TEXT",
+    "number": "FIXED",
+    "integer": "FIXED",
+    "int": "FIXED",
+    "decimal": "FIXED",
+    "float": "REAL",
+    "double": "REAL",
+    "boolean": "BOOLEAN",
+    "date": "DATE",
+    "datetime": "TIMESTAMP_NTZ",
+    "timestamp": "TIMESTAMP_NTZ",
+    "json": "VARIANT",
+    "object": "OBJECT",
+    "array": "ARRAY",
+    "uuid": "TEXT"
+  },
+
+  "errorCodes": {
+    "success": {
+      "code": "090001",
+      "sqlState": "00000",
+      "message": "Statement executed successfully."
+    },
+    "syntaxError": {
+      "code": "001003",
+      "sqlState": "42601",
+      "message": "SQL compilation error"
+    },
+    "objectNotFound": {
+      "code": "002003",
+      "sqlState": "42S02",
+      "message": "Object does not exist or not authorized"
+    },
+    "permissionDenied": {
+      "code": "003001",
+      "sqlState": "42501",
+      "message": "Insufficient privileges"
+    },
+    "timeout": {
+      "code": "000604",
+      "sqlState": "57014",
+      "message": "Query execution was cancelled"
+    },
+    "invalidValue": {
+      "code": "100038",
+      "sqlState": "22000",
+      "message": "Invalid value"
+    },
+    "running": {
+      "code": "333334",
+      "sqlState": "00000",
+      "message": "Statement is still running."
+    },
+    "cancelled": {
+      "code": "000605",
+      "sqlState": "57014",
+      "message": "Statement was cancelled."
+    }
+  },
+
+  "mockBehavior": {
+    "simulateAsyncExecution": true,
+    "defaultExecutionTimeMs": 100,
+    "maxExecutionTimeMs": 5000,
+    "supportedSqlCommands": [
+      "SELECT",
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+      "CREATE",
+      "DROP",
+      "ALTER",
+      "SHOW",
+      "DESCRIBE",
+      "USE"
+    ],
+    "defaultDatabase": "SAMPLE_DATA",
+    "defaultSchema": "PUBLIC",
+    "defaultWarehouse": "COMPUTE_WH",
+    "resultFormat": "jsonv2"
+  },
+
+  "dataGenerationHints": {
+    "customers": {
+      "count": 1000,
+      "industryDistribution": {
+        "Technology": 0.25,
+        "Healthcare": 0.15,
+        "Finance": 0.15,
+        "Retail": 0.15,
+        "Manufacturing": 0.10,
+        "Other": 0.20
+      },
+      "statusDistribution": {
+        "ACTIVE": 0.70,
+        "INACTIVE": 0.15,
+        "PROSPECT": 0.10,
+        "CHURNED": 0.05
+      }
+    },
+    "orders": {
+      "count": 5000,
+      "ordersPerCustomer": { "min": 1, "max": 20, "average": 5 },
+      "statusDistribution": {
+        "DELIVERED": 0.50,
+        "SHIPPED": 0.20,
+        "PROCESSING": 0.15,
+        "PENDING": 0.10,
+        "CANCELLED": 0.03,
+        "RETURNED": 0.02
+      }
+    },
+    "products": {
+      "count": 500,
+      "activePercentage": 0.90
+    },
+    "order_items": {
+      "itemsPerOrder": { "min": 1, "max": 10, "average": 3 }
+    }
+  }
+}

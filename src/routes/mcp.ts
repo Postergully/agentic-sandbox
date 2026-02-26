@@ -1,8 +1,10 @@
 /**
  * MCP (Model Context Protocol) Routes
  *
- * Implements basic MCP protocol endpoints for Claude Cowork / Claude Desktop integration.
+ * Implements MCP protocol endpoints for Claude Cowork / Claude Desktop integration.
  * MCP is Anthropic's protocol for connecting Claude to external tools and data sources.
+ *
+ * This implementation proxies tool calls to WireMock for dynamic mock responses.
  *
  * Endpoints:
  *   GET  /mcp           - Server info and capabilities
@@ -11,6 +13,7 @@
 
 import { Router, Request, Response } from 'express';
 import logger from '../utils/logger';
+import { wiremockProxyService } from '../services/wiremockProxyService';
 
 const router = Router();
 
@@ -30,57 +33,18 @@ const SERVER_CAPABILITIES = {
   prompts: {},
 };
 
-// Available tools for Snowflake mock
-const SNOWFLAKE_TOOLS = [
-  {
-    name: 'execute_sql',
-    description: 'Execute a SQL query against Snowflake',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        statement: {
-          type: 'string',
-          description: 'SQL statement to execute',
-        },
-        database: {
-          type: 'string',
-          description: 'Database name (optional)',
-        },
-        schema: {
-          type: 'string',
-          description: 'Schema name (optional)',
-        },
-      },
-      required: ['statement'],
-    },
-  },
-  {
-    name: 'list_databases',
-    description: 'List all databases in Snowflake',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-  },
-  {
-    name: 'list_tables',
-    description: 'List tables in a database/schema',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        database: { type: 'string' },
-        schema: { type: 'string' },
-      },
-    },
-  },
-];
-
 /**
  * GET /mcp - Server info endpoint
  * Returns server capabilities for MCP discovery
  */
-router.get('/', (_req: Request, res: Response) => {
+router.get('/', async (_req: Request, res: Response) => {
   logger.info('MCP: Discovery request received');
+
+  // Check WireMock health
+  const isHealthy = await wiremockProxyService.isHealthy();
+  if (!isHealthy) {
+    logger.warn('MCP: WireMock is not healthy, some tools may be unavailable');
+  }
 
   res.json({
     jsonrpc: '2.0',
@@ -127,11 +91,11 @@ router.post('/', async (req: Request, res: Response) => {
         return;
 
       case 'tools/list':
-        result = { tools: SNOWFLAKE_TOOLS };
+        result = await handleToolsList(params);
         break;
 
       case 'tools/call':
-        result = await handleToolCall(params);
+        result = await handleToolCall(params, req);
         break;
 
       case 'resources/list':
@@ -174,61 +138,48 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 /**
- * Handle tool calls
+ * Handle tools/list - Get available tools from WireMock proxy
  */
-async function handleToolCall(params: { name: string; arguments?: Record<string, unknown> }): Promise<unknown> {
-  const { name, arguments: args } = params;
+async function handleToolsList(
+  _params?: { cursor?: string }
+): Promise<{ tools: unknown[]; nextCursor?: string }> {
+  // Get tools from WireMock proxy service
+  // Default to Snowflake connector for now
+  const connector = 'snowflake';
+  const tools = await wiremockProxyService.getTools(connector);
+
+  logger.info(`MCP: Returning ${tools.length} tools for ${connector}`);
+
+  return { tools };
+}
+
+/**
+ * Handle tool calls by proxying to WireMock
+ */
+async function handleToolCall(
+  params: { name: string; arguments?: Record<string, unknown> },
+  req: Request
+): Promise<unknown> {
+  const { name, arguments: args = {} } = params;
 
   logger.info(`MCP: Tool call: ${name}`, args);
 
-  switch (name) {
-    case 'execute_sql':
-      // Mock SQL execution
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              statement: args?.statement,
-              data: [
-                { id: 1, name: 'Mock Result 1' },
-                { id: 2, name: 'Mock Result 2' },
-              ],
-              rowCount: 2,
-              message: 'Query executed successfully (mock)',
-            }, null, 2),
-          },
-        ],
-      };
+  // Extract instance ID from headers or query params if provided
+  const instanceId =
+    (req.headers['x-mock-instance-id'] as string) ||
+    (req.query.instanceId as string) ||
+    undefined;
 
-    case 'list_databases':
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              databases: ['MOCK_DB', 'SAMPLE_DATA', 'ANALYTICS'],
-            }, null, 2),
-          },
-        ],
-      };
+  // Execute tool call via WireMock proxy
+  const result = await wiremockProxyService.executeToolCall(name, args, instanceId);
 
-    case 'list_tables':
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              tables: ['CUSTOMERS', 'ORDERS', 'PRODUCTS', 'ORDER_ITEMS'],
-            }, null, 2),
-          },
-        ],
-      };
-
-    default:
-      throw new Error(`Unknown tool: ${name}`);
+  if (result.isError) {
+    logger.warn(`MCP: Tool ${name} returned error`, result);
+  } else {
+    logger.info(`MCP: Tool ${name} completed successfully`);
   }
+
+  return result;
 }
 
 export default router;

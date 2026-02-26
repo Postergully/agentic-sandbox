@@ -7,6 +7,9 @@ import {
   createListCommand,
   createInfoCommand,
   createDeleteCommand,
+  createGenerateCommand,
+  createValidateCommand,
+  createStatusCommand,
 } from './commands';
 
 // Initialize database connection for CLI operations
@@ -29,6 +32,9 @@ program.addCommand(createCreateCommand());
 program.addCommand(createListCommand());
 program.addCommand(createInfoCommand());
 program.addCommand(createDeleteCommand());
+program.addCommand(createGenerateCommand());
+program.addCommand(createValidateCommand());
+program.addCommand(createStatusCommand());
 
 // Clone command (simplified version - coming soon)
 program

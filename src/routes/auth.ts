@@ -10,15 +10,16 @@ import config from '../config';
 const router = Router();
 
 // OAuth 2.0 Authorization endpoint
-router.get('/authorize', asyncHandler(async (req: Request, res: Response) => {
+router.get('/authorize', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { client_id, redirect_uri, response_type, scope, state } = req.query;
 
   // Validate required parameters
   if (!client_id || !redirect_uri || response_type !== 'code') {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'invalid_request',
       error_description: 'Missing or invalid required parameters',
     });
+    return;
   }
 
   // Generate authorization code
@@ -45,39 +46,43 @@ router.get('/authorize', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 // OAuth 2.0 Token endpoint
-router.post('/token', authRateLimiter, asyncHandler(async (req: Request, res: Response) => {
+router.post('/token', authRateLimiter, asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { grant_type, code, client_id, client_secret, redirect_uri } = req.body;
 
   if (grant_type !== 'authorization_code') {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'unsupported_grant_type',
       error_description: 'Only authorization_code grant type is supported',
     });
+    return;
   }
 
   // Validate client credentials
   if (client_id !== config.oauth.clientId || client_secret !== config.oauth.clientSecret) {
-    return res.status(401).json({
+    res.status(401).json({
       error: 'invalid_client',
       error_description: 'Invalid client credentials',
     });
+    return;
   }
 
   // Retrieve authorization code from Redis
   const authData = await redisClient.getJSON<any>(`auth_code:${code}`);
   if (!authData) {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'invalid_grant',
       error_description: 'Authorization code is invalid or expired',
     });
+    return;
   }
 
   // Validate redirect URI
   if (authData.redirectUri !== redirect_uri) {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'invalid_grant',
       error_description: 'Redirect URI does not match',
     });
+    return;
   }
 
   // Delete used authorization code
@@ -115,14 +120,15 @@ router.post('/token', authRateLimiter, asyncHandler(async (req: Request, res: Re
 }));
 
 // Mock user info endpoint
-router.get('/userinfo', asyncHandler(async (req: Request, res: Response) => {
+router.get('/userinfo', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({
+    res.status(401).json({
       error: 'invalid_token',
       error_description: 'No valid token provided',
     });
+    return;
   }
 
   const response: ApiResponse = {
