@@ -16,6 +16,7 @@ import connectorRoutes from './routes/connectors';
 import snowflakeRoutes from './routes/snowflake';
 import factoryRoutes from './routes/factory';
 import mcpRoutes from './routes/mcp';
+import googleWorkspaceRoutes from './routes/google-workspace';
 
 class App {
   public app: Application;
@@ -89,6 +90,9 @@ class App {
 
     // Mock Server Factory routes
     this.app.use('/api/factory', factoryRoutes);
+
+    // Google Workspace API mock routes (Drive, Calendar, Gmail)
+    this.app.use('/api/google', googleWorkspaceRoutes);
 
     // MCP (Model Context Protocol) routes for Claude Cowork / Claude Desktop
     this.app.use('/mcp', mcpRoutes);
