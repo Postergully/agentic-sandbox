@@ -50,6 +50,9 @@ import {
   LLMAgentParseResult,
 } from './llm-agent-parser';
 import { validateSchemaQuality, QualityReport } from './schema-quality-validator';
+import { fetchFromAllSources, MultiSourceResult, RawSourceSchema } from '../sources/multi-source-fetcher';
+import { reconcileSchemas, ReconciliationResult } from '../reconciler';
+import { getAllKnownConnectors } from '../sources/registry';
 
 // =============================================================================
 // TYPES
@@ -67,6 +70,7 @@ export type SchemaInputType =
   | 'file'
   | 'url'
   | 'large-docs'
+  | 'connector-name'
   | 'unknown';
 
 /**
@@ -74,7 +78,7 @@ export type SchemaInputType =
  */
 export interface InputDetection {
   type: SchemaInputType;
-  suggestedParser: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent';
+  suggestedParser: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent' | 'multi-source';
   confidence: number;
   reason: string;
 }
@@ -92,7 +96,7 @@ export interface SchemaParserOptions {
   /** Anthropic API key (for LLM parser) */
   apiKey?: string;
   /** Force specific parser */
-  forceParser?: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent';
+  forceParser?: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent' | 'multi-source';
   /** Whether to validate output schema */
   validate?: boolean;
   /** Whether to save schema to file */
@@ -111,7 +115,7 @@ export interface SchemaParserOptions {
 export interface SchemaParseResult {
   schema: ConnectorSchema;
   inputType: SchemaInputType;
-  parserUsed: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent';
+  parserUsed: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent' | 'multi-source';
   confidence?: number;
   warnings: string[];
   metadata: Record<string, unknown>;
@@ -294,6 +298,18 @@ export function detectInputType(input: string | object): InputDetection {
     };
   }
 
+  // Check if it's a known connector name (for multi-source discovery)
+  const knownConnectors = getAllKnownConnectors();
+  const normalized = str.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  if (knownConnectors.includes(normalized)) {
+    return {
+      type: 'connector-name',
+      suggestedParser: 'multi-source',
+      confidence: 0.95,
+      reason: `Input matches known connector "${normalized}" — will use multi-source discovery`,
+    };
+  }
+
   // Default to text description for LLM
   return {
     type: 'description',
@@ -348,6 +364,93 @@ export async function parseSchema(
   let schema: ConnectorSchema;
   let metadata: Record<string, unknown> = {};
   let confidence: number | undefined;
+
+  // =========================================================================
+  // Multi-Source Discovery Layer
+  // For known connector names, fetch from multiple public registries
+  // and reconcile into a single schema.
+  // =========================================================================
+  if (
+    typeof input === 'string' &&
+    detection.type === 'connector-name' &&
+    (parserToUse === 'multi-source' || options.forceParser === 'multi-source')
+  ) {
+    if (options.verbose) {
+      console.log(`Multi-source discovery for connector: ${input}`);
+    }
+
+    const connectorName = input.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+    // Check harvested cache first (Layer 0)
+    const harvestedCachePath = path.join(process.cwd(), 'schemas', 'harvested', `${connectorName}.json`);
+    if (fs.existsSync(harvestedCachePath)) {
+      try {
+        const cached = JSON.parse(fs.readFileSync(harvestedCachePath, 'utf8'));
+        const cacheAge = Date.now() - (cached._harvestedAt || 0);
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
+        if (cacheAge < SEVEN_DAYS && cached._qualityScore >= 80) {
+          if (options.verbose) {
+            console.log(`  Using cached harvested schema (age: ${Math.round(cacheAge / 3600000)}h, quality: ${cached._qualityScore})`);
+          }
+          // Strip metadata fields
+          const { _harvestedAt, _qualityScore, _sourcesUsed, ...schemaData } = cached;
+          schema = validateSchema(schemaData);
+          metadata = {
+            source: 'harvested_cache',
+            harvestedAt: new Date(_harvestedAt).toISOString(),
+            qualityScore: _qualityScore,
+            sourcesUsed: _sourcesUsed,
+          };
+          return finalizeResult(schema, detection, 'multi-source', 0.9, warnings, metadata, options);
+        } else {
+          if (options.verbose) {
+            console.log(`  Cached schema is stale or low quality — re-fetching`);
+          }
+        }
+      } catch {
+        // Ignore cache errors
+      }
+    }
+
+    // Layer 1: Multi-source fetch
+    if (options.verbose) {
+      console.log('  Fetching from all sources in parallel...');
+    }
+    const multiSourceResult = await fetchFromAllSources(connectorName);
+
+    if (multiSourceResult.sources.length === 0) {
+      warnings.push(`No sources found for connector "${connectorName}" — falling back to LLM inference`);
+      parserToUse = 'llm';
+      // Fall through to the standard parser switch below
+    } else {
+      if (options.verbose) {
+        console.log(`  Found ${multiSourceResult.sources.length} sources (${multiSourceResult.fetchDurationMs}ms)`);
+        for (const src of multiSourceResult.sources) {
+          console.log(`    - ${src.source}: ${Object.keys(src.schemas).length} schemas, ${Object.keys(src.paths).length} paths`);
+        }
+      }
+
+      // Layer 3: Reconcile schemas
+      const reconciled = await reconcileSchemas(connectorName, multiSourceResult.sources, {
+        apiKey: options.apiKey,
+        verbose: options.verbose,
+      });
+
+      schema = reconciled.schema;
+      confidence = reconciled.confidence;
+      warnings.push(...reconciled.warnings);
+      metadata = {
+        sourcesUsed: reconciled.sourcesUsed,
+        fetchDurationMs: multiSourceResult.fetchDurationMs,
+        reconciliationDurationMs: reconciled.metadata.totalDurationMs,
+        tokensUsed: reconciled.metadata.tokensUsed,
+        entityCount: reconciled.schema.entities.length,
+      };
+
+      return finalizeResult(schema, detection, 'multi-source', confidence, warnings, metadata, options);
+    }
+  }
 
   // =========================================================================
   // URL Content Detection Layer
@@ -829,6 +932,13 @@ export {
   // Schema types
   ConnectorSchema,
   SchemaValidationError,
+
+  // Multi-Source Discovery
+  fetchFromAllSources,
+  MultiSourceResult,
+  RawSourceSchema,
+  reconcileSchemas,
+  ReconciliationResult,
 };
 
 export default parseSchema;

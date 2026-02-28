@@ -234,13 +234,22 @@ export class FactoryPipelineService {
           },
         });
       } else {
-        // Try to load from default schemas directory
+        // Try harvested cache first, then default schemas directory
+        const harvestedSchemaPath = path.join(process.cwd(), 'schemas', 'harvested', `${input.connector}.json`);
         const defaultSchemaPath = path.join(process.cwd(), 'schemas', `${input.connector}.json`);
-        schema = await this.loadSchemaFromFile(defaultSchemaPath);
+
+        schema = await this.loadSchemaFromFile(harvestedSchemaPath);
+        let schemaSource = 'harvested';
+
+        if (!schema) {
+          schema = await this.loadSchemaFromFile(defaultSchemaPath);
+          schemaSource = 'default';
+        }
 
         if (!schema) {
           throw new Error(
-            `No schema source provided. Specify --api-docs, --schema, or ensure schemas/${input.connector}.json exists.`
+            `No schema source provided. Specify --api-docs, --schema, or ensure schemas/${input.connector}.json exists.\n` +
+            `Tip: Run 'mock-factory harvest -c ${input.connector}' to pre-populate from public registries.`
           );
         }
 
@@ -248,7 +257,10 @@ export class FactoryPipelineService {
           stage: 'schema_inference',
           status: 'success',
           durationMs: Date.now() - schemaStart,
-          details: { source: 'default', path: defaultSchemaPath },
+          details: {
+            source: schemaSource,
+            path: schemaSource === 'harvested' ? harvestedSchemaPath : defaultSchemaPath,
+          },
         });
       }
 
