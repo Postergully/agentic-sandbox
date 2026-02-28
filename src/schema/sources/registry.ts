@@ -42,14 +42,14 @@ export const CONNECTOR_TO_APIDECK_API: Record<string, string | null> = {
   gmail: null,
 };
 
-/** Apideck public OpenAPI spec URLs per unified API */
+/** Apideck public OpenAPI spec URLs per unified API (via GitHub raw) */
 export const APIDECK_SPEC_URLS: Record<string, string> = {
-  accounting: 'https://developers.apideck.com/specs/accounting.yml',
-  crm: 'https://developers.apideck.com/specs/crm.yml',
-  hris: 'https://developers.apideck.com/specs/hris.yml',
-  'file-storage': 'https://developers.apideck.com/specs/file-storage.yml',
-  ats: 'https://developers.apideck.com/specs/ats.yml',
-  ecommerce: 'https://developers.apideck.com/specs/ecommerce.yml',
+  accounting: 'https://raw.githubusercontent.com/apideck-libraries/openapi-specs/master/accounting.yml',
+  crm: 'https://raw.githubusercontent.com/apideck-libraries/openapi-specs/master/crm.yml',
+  hris: 'https://raw.githubusercontent.com/apideck-libraries/openapi-specs/master/hris.yml',
+  'file-storage': 'https://raw.githubusercontent.com/apideck-libraries/openapi-specs/master/file-storage.yml',
+  ats: 'https://raw.githubusercontent.com/apideck-libraries/openapi-specs/master/ats.yml',
+  ecommerce: 'https://raw.githubusercontent.com/apideck-libraries/openapi-specs/master/ecommerce.yml',
 };
 
 // =============================================================================
@@ -83,17 +83,10 @@ export const CONNECTOR_TO_PROVIDER: Record<string, string> = {
 /** Known community/official OpenAPI spec repos per connector */
 export const KNOWN_REPOS: Record<string, string[]> = {
   netsuite: [
-    'https://raw.githubusercontent.com/camicri/netsuite-rest-api-spec/main/netsuite.yaml',
-    'https://raw.githubusercontent.com/trilogy-group/netsuite-rest-api-spec/main/openapi.yaml',
+    'https://raw.githubusercontent.com/oracle/netsuite-suitecloud-sdk/master/packages/node-cli/openapi.yaml',
   ],
   hubspot: [
-    'https://raw.githubusercontent.com/HubSpot/HubSpot-public-api-spec-collection/main/PublicApiSpecs/CRM/Contacts/Codegen/Contacts.json',
-  ],
-  quickbooks: [
-    'https://raw.githubusercontent.com/intuit/QuickBooks-V3-PHP-SDK/master/docs/openapi.json',
-  ],
-  zoho_crm: [
-    'https://raw.githubusercontent.com/zoho/zoho-crm-openapi/main/openapi.yaml',
+    'https://raw.githubusercontent.com/HubSpot/HubSpot-public-api-spec-collection/main/PublicApiSpecs/CRM/Contacts/Rollouts/424/v3/contacts.json',
   ],
   slack: [
     'https://raw.githubusercontent.com/slackapi/slack-api-specs/master/web-api/slack_web_openapi_v2.json',
@@ -101,17 +94,14 @@ export const KNOWN_REPOS: Record<string, string[]> = {
   stripe: [
     'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
   ],
-  shopify: [
-    'https://raw.githubusercontent.com/Shopify/shopify-api-specs/main/admin-rest-2024-01.json',
-  ],
   google_drive: [
     'https://raw.githubusercontent.com/APIs-guru/openapi-directory/main/APIs/googleapis.com/drive/v3/openapi.yaml',
   ],
   xero: [
     'https://raw.githubusercontent.com/XeroAPI/Xero-OpenAPI/master/xero_accounting.yaml',
   ],
-  freshbooks: [
-    'https://raw.githubusercontent.com/freshbooks/freshbooks-openapi/main/openapi.yaml',
+  gmail: [
+    'https://raw.githubusercontent.com/APIs-guru/openapi-directory/main/APIs/googleapis.com/gmail/v1/openapi.yaml',
   ],
 };
 
@@ -123,12 +113,10 @@ export const GITHUB_SEARCH_URL =
 // POSTMAN COLLECTIONS
 // =============================================================================
 
-/** Known public Postman collection URLs per connector */
+/** Known public Postman collection URLs per connector (raw JSON only, no postman.com web URLs) */
 export const POSTMAN_COLLECTIONS: Record<string, string> = {
-  netsuite: 'https://www.postman.com/collections/netsuite-rest-api-collection',
   hubspot:
     'https://raw.githubusercontent.com/HubSpot/HubSpot-public-api-spec-collection/main/PostmanCollections/CRM.json',
-  stripe: 'https://www.postman.com/stripedev/stripe-developers/collection/stripedev-stripe-api',
 };
 
 // =============================================================================

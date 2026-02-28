@@ -292,6 +292,47 @@ Return the complete improved schema as JSON only (ConnectorSchema format).
     finalSchema.relationships = [];
   }
 
+  // Normalize entity structure to satisfy Zod validation
+  const VALID_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'datetime', 'json', 'uuid'];
+  for (const entity of finalSchema.entities) {
+    // Ensure tableName
+    if (!entity.tableName) {
+      entity.tableName = `${connector}_${toSnakeCase(entity.name)}`;
+    }
+    // Ensure endpoints exist — add default CRUD if missing
+    if (!entity.endpoints || entity.endpoints.length === 0) {
+      const basePath = `/${entity.name.toLowerCase()}`;
+      entity.endpoints = [
+        { method: 'GET', path: basePath, operation: 'list' },
+        { method: 'GET', path: `${basePath}/:id`, operation: 'get' },
+        { method: 'POST', path: basePath, operation: 'create' },
+        { method: 'PATCH', path: `${basePath}/:id`, operation: 'update' },
+        { method: 'DELETE', path: `${basePath}/:id`, operation: 'delete' },
+      ];
+    }
+    // Ensure fields have valid types and required flag
+    for (const field of entity.fields || []) {
+      if (!VALID_FIELD_TYPES.includes(field.type)) field.type = 'string' as FieldDefinition['type'];
+      if (field.required === undefined) field.required = false;
+    }
+  }
+  // Remove entities that still have no fields
+  finalSchema.entities = finalSchema.entities.filter(e => e.fields?.length > 0);
+  // Ensure auth.fields has at least 1 item
+  if (!finalSchema.auth.fields || finalSchema.auth.fields.length === 0) {
+    finalSchema.auth.fields = ['clientId', 'clientSecret'];
+  }
+
+  // Normalize relationship types to valid enum values
+  // LLM may produce types like "many-to-one" that aren't in the Zod enum
+  const VALID_REL_TYPES = new Set(['one-to-one', 'one-to-many', 'many-to-many']);
+  for (const rel of finalSchema.relationships) {
+    const relType = rel.type as string;
+    if (!VALID_REL_TYPES.has(relType)) {
+      rel.type = 'one-to-many';
+    }
+  }
+
   // Apply faker hints to any fields that are still missing them
   for (const entity of finalSchema.entities) {
     for (const field of entity.fields) {

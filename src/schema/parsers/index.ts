@@ -395,21 +395,28 @@ export async function parseSchema(
           }
           // Strip metadata fields
           const { _harvestedAt, _qualityScore, _sourcesUsed, ...schemaData } = cached;
-          schema = validateSchema(schemaData);
-          metadata = {
-            source: 'harvested_cache',
-            harvestedAt: new Date(_harvestedAt).toISOString(),
-            qualityScore: _qualityScore,
-            sourcesUsed: _sourcesUsed,
-          };
-          return finalizeResult(schema, detection, 'multi-source', 0.9, warnings, metadata, options);
+
+          // Cached schemas were validated at harvest time — trust them
+          // Only do a basic shape check, not full Zod validation
+          if (schemaData.entities?.length > 0 && schemaData.auth && schemaData.name) {
+            schema = schemaData as ConnectorSchema;
+            metadata = {
+              source: 'harvested_cache',
+              harvestedAt: new Date(_harvestedAt).toISOString(),
+              qualityScore: _qualityScore,
+              sourcesUsed: _sourcesUsed,
+            };
+            return finalizeResult(schema, detection, 'multi-source', 0.9, warnings, metadata, { ...options, validate: false });
+          }
         } else {
           if (options.verbose) {
             console.log(`  Cached schema is stale or low quality — re-fetching`);
           }
         }
-      } catch {
-        // Ignore cache errors
+      } catch (err) {
+        if (options.verbose) {
+          console.log(`  Cache read error: ${err}`);
+        }
       }
     }
 

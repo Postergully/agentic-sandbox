@@ -198,9 +198,13 @@ async function fetchFromGitHub(connector: string, repos: string[]): Promise<RawS
   // 2. Fallback: GitHub code search (unauthenticated, rate-limited)
   try {
     const searchUrl = GITHUB_SEARCH_URL.replace('{connector}', connector);
-    const results = (await fetchJSON(searchUrl, {
+    const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
-    })) as Record<string, unknown>;
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+    }
+    const results = (await fetchJSON(searchUrl, headers)) as Record<string, unknown>;
 
     const items = (results.items || []) as Array<Record<string, string>>;
     for (const item of items.slice(0, 3)) {
