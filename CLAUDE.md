@@ -16,6 +16,7 @@ Agentic Sandbox is an **AI Agent Connector Testing Platform** with isolated mock
 | [`docs/agentic-sandbox-architecture.html`](docs/agentic-sandbox-architecture.html) | Architecture visualization |
 | [`docs/snowflake-architecture.html`](docs/snowflake-architecture.html) | Snowflake flow diagram |
 | [`docs/factory-cli-pipeline-explorer.html`](docs/factory-cli-pipeline-explorer.html) | **Interactive Factory CLI pipeline visualization** |
+| [`docs/plans/completed/`](docs/plans/completed/) | **Branch context docs** — one per feature branch, agent-readable |
 
 ## Maintaining the Architecture Visualization
 
@@ -43,6 +44,24 @@ Agentic Sandbox is an **AI Agent Connector Testing Platform** with isolated mock
 - **Right column** (x:480-800): Storage tiers, grouped with related stages
 - **Full-width rows**: Protocol layer, consumer flow, lifecycle (bottom)
 - Keep related nodes at the same y-coordinate for visual grouping
+
+## Branch Context Doc Protocol
+
+**Before creating a PR for any feature branch**, write a branch context doc at:
+`docs/plans/completed/YYYY-MM-DD-branch-name.md`
+
+This doc is the **agent-readable memory** for the branch. It must include:
+
+1. **What the branch does** — one paragraph summary
+2. **Architecture/flow** — how data moves through the system
+3. **Files created/modified** — table with file path and purpose
+4. **CLI commands** — every command and flag, with examples
+5. **Key design decisions** — why, not just what
+6. **Verification commands** — how to prove it works
+7. **Environment variables** — anything needed at runtime
+8. **Caching/storage layout** — where things are stored on disk
+
+Update this doc on every commit to the branch. Keep it current — an agent starting a new session should be able to read this doc and fully understand the branch without reading code.
 
 ## Task Tracking Protocol
 
