@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "connectorId": "google_workspace",
+  "connectorName": "Google Workspace",
+  "connectorType": "productivity_suite",
+  "version": "1.0.0",
+  "description": "Google Workspace mock server for AI agent testing — Drive, Calendar, Gmail APIs",
+
+  "authentication": {
+    "type": "oauth2",
+    "flows": ["authorization_code", "refresh_token"],
+    "endpoints": {
+      "authorize": "/oauth2/v4/authorize",
+      "token": "/oauth2/v4/token"
+    },
+    "fields": [
+      "client_id",
+      "client_secret",
+      "redirect_uri",
+      "scope"
+    ],
+    "config": {
+      "tokenType": "Bearer",
+      "headerFormat": "Authorization: Bearer {access_token}",
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ]
+    },
+    "mockBehavior": {
+      "acceptAnyCredentials": true,
+      "tokenExpiresIn": 3600,
+      "refreshTokenEnabled": true
+    }
+  },
+
+  "baseUrl": "/api/google",
+
+  "entities": {
+    "drive_files": {
+      "description": "Google Drive files and folders",
+      "endpoints": {
+        "list": "GET /drive/v3/files",
+        "get": "GET /drive/v3/files/:id",
+        "create": "POST /drive/v3/files"
+      },
+      "fields": [
+        { "name": "id", "type": "string", "required": true },
+        { "name": "name", "type": "string", "required": true },
+        { "name": "mimeType", "type": "string", "required": true },
+        { "name": "size", "type": "string" },
+        { "name": "createdTime", "type": "datetime" },
+        { "name": "modifiedTime", "type": "datetime" },
+        { "name": "parents", "type": "array" },
+        { "name": "webViewLink", "type": "string" },
+        { "name": "owners", "type": "array" },
+        { "name": "trashed", "type": "boolean" }
+      ]
+    },
+    "calendar_events": {
+      "description": "Google Calendar events",
+      "endpoints": {
+        "list": "GET /calendar/v3/calendars/:calendarId/events",
+        "get": "GET /calendar/v3/calendars/:calendarId/events/:eventId",
+        "create": "POST /calendar/v3/calendars/:calendarId/events"
+      },
+      "fields": [
+        { "name": "id", "type": "string", "required": true },
+        { "name": "summary", "type": "string", "required": true },
+        { "name": "description", "type": "string" },
+        { "name": "location", "type": "string" },
+        { "name": "start", "type": "object", "required": true },
+        { "name": "end", "type": "object", "required": true },
+        { "name": "status", "type": "string" },
+        { "name": "creator", "type": "object" },
+        { "name": "attendees", "type": "array" }
+      ]
+    },
+    "gmail_messages": {
+      "description": "Gmail messages and threads",
+      "endpoints": {
+        "list": "GET /gmail/v1/users/me/messages",
+        "get": "GET /gmail/v1/users/me/messages/:id",
+        "labels": "GET /gmail/v1/users/me/labels"
+      },
+      "fields": [
+        { "name": "id", "type": "string", "required": true },
+        { "name": "threadId", "type": "string", "required": true },
+        { "name": "labelIds", "type": "array" },
+        { "name": "snippet", "type": "string" },
+        { "name": "payload", "type": "object" },
+        { "name": "internalDate", "type": "string" },
+        { "name": "sizeEstimate", "type": "integer" }
+      ]
+    }
+  }
+}

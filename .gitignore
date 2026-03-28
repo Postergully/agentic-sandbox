@@ -49,6 +49,17 @@ temp/
 # Redis
 dump.rdb
 
+# Generated output
+output/
+wiremock/
+.cache/
+
+# Local tool config
+.mcp.json
+
+# NetSuite reference docs (large)
+docs/2025_2/
+
 # OS
 Thumbs.db
 .AppleDouble

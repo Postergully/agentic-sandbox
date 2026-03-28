@@ -6,22 +6,52 @@ import config from './config';
 import logger from './utils/logger';
 import database from './config/database';
 import redisClient from './config/redis';
+import { sslDnsService, SSLConfig } from './services/sslDnsService';
 
-// HTTPS configuration
-const HTTPS_PORT = parseInt(process.env.HTTPS_PORT || '443', 10);
-const CERT_PATH = process.env.SSL_CERT_PATH || path.join(process.cwd(), 'certs');
+/**
+ * Resolve SSL options via sslDnsService or fallback to scanning certs directory.
+ */
+function getSSLOptions(): { key: Buffer; cert: Buffer } | null {
+  // 1. Try explicit cert/key paths via sslDnsService
+  if (config.ssl.certPath && config.ssl.keyPath) {
+    const sslConfig: SSLConfig = {
+      domain: '',
+      localIp: '127.0.0.1',
+      port: config.ssl.httpsPort,
+      certPath: config.ssl.certPath,
+      keyPath: config.ssl.keyPath,
+      hostsEntryAdded: false,
+      mockUrl: '',
+      certsGenerated: true,
+    };
+    const opts = sslDnsService.getExpressSSLOptions(sslConfig);
+    if (opts) {
+      logger.info(`SSL: Using explicit cert ${config.ssl.certPath}`);
+      return opts;
+    }
+  }
 
-function getSSLCerts(): { key: Buffer; cert: Buffer } | null {
+  // 2. Fallback: scan certsDir for .pem files
   try {
-    // Look for wildcard certs first, then specific certs
-    const certFiles = fs.readdirSync(CERT_PATH);
+    const certsDir = config.ssl.certsDir;
+    const certFiles = fs.readdirSync(certsDir);
     const certFile = certFiles.find(f => f.endsWith('.pem') && !f.includes('-key'));
     const keyFile = certFiles.find(f => f.endsWith('-key.pem'));
 
     if (certFile && keyFile) {
+      logger.info(`SSL: Found certs in ${certsDir} — ${certFile}, ${keyFile}`);
+
+      // Log configured domains from cert filenames
+      const domains = certFiles
+        .filter(f => f.endsWith('.pem') && !f.includes('-key'))
+        .map(f => f.replace('.pem', ''));
+      if (domains.length > 0) {
+        logger.info(`SSL: Configured domains — ${domains.join(', ')}`);
+      }
+
       return {
-        cert: fs.readFileSync(path.join(CERT_PATH, certFile)),
-        key: fs.readFileSync(path.join(CERT_PATH, keyFile)),
+        cert: fs.readFileSync(path.join(certsDir, certFile)),
+        key: fs.readFileSync(path.join(certsDir, keyFile)),
       };
     }
     return null;
@@ -51,23 +81,27 @@ const startServer = async () => {
       logger.info(`API Base URL: http://${config.host}:${config.port}/api`);
     });
 
-    // Start HTTPS server if certs are available
-    const sslCerts = getSSLCerts();
+    // Start HTTPS server if enabled and certs are available
     let httpsServer: https.Server | null = null;
 
-    if (sslCerts) {
-      try {
-        httpsServer = https.createServer(sslCerts, app);
-        httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
-          logger.info(`HTTPS Server running on 0.0.0.0:${HTTPS_PORT}`);
-          logger.info(`Mock URLs will work via /etc/hosts + HTTPS`);
-        });
-      } catch (err) {
-        logger.warn(`Failed to start HTTPS server: ${err}. Run with sudo for port 443.`);
+    if (config.ssl.enabled) {
+      const sslOpts = getSSLOptions();
+      if (sslOpts) {
+        try {
+          httpsServer = https.createServer(sslOpts, app);
+          httpsServer.listen(config.ssl.httpsPort, '0.0.0.0', () => {
+            logger.info(`HTTPS Server running on 0.0.0.0:${config.ssl.httpsPort}`);
+            logger.info('Mock URLs will work via /etc/hosts + HTTPS');
+          });
+        } catch (err) {
+          logger.warn(`Failed to start HTTPS server: ${err}. Run with sudo for port 443.`);
+        }
+      } else {
+        logger.info(`No SSL certs found in ${config.ssl.certsDir} — HTTPS disabled`);
+        logger.info('Run: npm run cli -- create -c snowflake -o yourorg to generate certs');
       }
     } else {
-      logger.info('No SSL certs found in ./certs - HTTPS disabled');
-      logger.info('Run: npm run cli -- create -c snowflake -o yourorg to generate certs');
+      logger.info('SSL disabled via SSL_ENABLED=false');
     }
 
     // Graceful shutdown

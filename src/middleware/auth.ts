@@ -8,7 +8,7 @@ import logger from '../utils/logger';
 
 export const authenticate = async (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   try {
@@ -81,7 +81,7 @@ export const optionalAuth = async (
 
 export const generateAccessToken = (payload: Omit<TokenPayload, 'type'>): string => {
   return jwt.sign({ ...payload, type: 'access' }, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
+    expiresIn: config.jwt.expiresIn as jwt.SignOptions['expiresIn'],
   });
 };
 
@@ -89,6 +89,6 @@ export const generateRefreshToken = (
   payload: Omit<TokenPayload, 'type'>
 ): string => {
   return jwt.sign({ ...payload, type: 'refresh' }, config.jwt.secret, {
-    expiresIn: config.jwt.refreshExpiresIn,
+    expiresIn: config.jwt.refreshExpiresIn as jwt.SignOptions['expiresIn'],
   });
 };

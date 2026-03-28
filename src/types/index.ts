@@ -322,3 +322,17 @@ export interface RegistryFilter {
   orgId?: string;
   status?: MockServerStatus;
 }
+
+// Instance Router Types
+export interface InstanceContext {
+  instanceId: string;
+  connector: string;
+  pgSchema: string;
+  baseUrl?: string;
+  apiBasePath?: string;
+  orgId: string;
+}
+
+export interface InstanceRequest extends Request {
+  instance?: InstanceContext;
+}

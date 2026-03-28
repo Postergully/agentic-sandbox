@@ -14,6 +14,7 @@ import {
   validateSchema,
   SchemaValidationError,
 } from '../connector-schema';
+import SwaggerParser from '@apidevtools/swagger-parser';
 import {
   OpenAPIParser,
   OpenAPIParserOptions,
@@ -30,6 +31,28 @@ import {
   inferSchemaFromJSON,
   inferSchemaFromDescription,
 } from './llm-inference-parser';
+import {
+  LargeDocsParser,
+  LargeDocsParserOptions,
+  LargeDocsParseResult,
+  isLargeDocs,
+  getDocsType,
+  parseLargeDocs,
+} from './large-docs-parser';
+import {
+  fetchAndDetectContent,
+  generateContentSummary,
+  URLContentDetection,
+} from './url-content-detector';
+import {
+  LLMAgentParser,
+  LLMAgentParserOptions,
+  LLMAgentParseResult,
+} from './llm-agent-parser';
+import { validateSchemaQuality, QualityReport } from './schema-quality-validator';
+import { fetchFromAllSources, MultiSourceResult, RawSourceSchema } from '../sources/multi-source-fetcher';
+import { reconcileSchemas, ReconciliationResult } from '../reconciler';
+import { getAllKnownConnectors } from '../sources/registry';
 
 // =============================================================================
 // TYPES
@@ -46,6 +69,8 @@ export type SchemaInputType =
   | 'description'
   | 'file'
   | 'url'
+  | 'large-docs'
+  | 'connector-name'
   | 'unknown';
 
 /**
@@ -53,7 +78,7 @@ export type SchemaInputType =
  */
 export interface InputDetection {
   type: SchemaInputType;
-  suggestedParser: 'openapi' | 'llm' | 'json';
+  suggestedParser: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent' | 'multi-source';
   confidence: number;
   reason: string;
 }
@@ -71,13 +96,17 @@ export interface SchemaParserOptions {
   /** Anthropic API key (for LLM parser) */
   apiKey?: string;
   /** Force specific parser */
-  forceParser?: 'openapi' | 'llm' | 'json';
+  forceParser?: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent' | 'multi-source';
   /** Whether to validate output schema */
   validate?: boolean;
   /** Whether to save schema to file */
   outputPath?: string;
   /** Verbose logging */
   verbose?: boolean;
+  /** Path to pre-parsed index (for large-docs parser) */
+  indexPath?: string;
+  /** Specific record names to parse (for large-docs parser) */
+  records?: string[];
 }
 
 /**
@@ -86,7 +115,7 @@ export interface SchemaParserOptions {
 export interface SchemaParseResult {
   schema: ConnectorSchema;
   inputType: SchemaInputType;
-  parserUsed: 'openapi' | 'llm' | 'json';
+  parserUsed: 'openapi' | 'llm' | 'json' | 'large-docs' | 'llm-agent' | 'multi-source';
   confidence?: number;
   warnings: string[];
   metadata: Record<string, unknown>;
@@ -133,8 +162,21 @@ export function detectInputType(input: string | object): InputDetection {
 
   const str = input.trim();
 
-  // Check if it's a file path
+  // Check if it's a file path or directory
   if (fs.existsSync(str)) {
+    const stats = fs.statSync(str);
+
+    // Check if it's a directory with large documentation
+    if (stats.isDirectory() && isLargeDocs(str)) {
+      const docsType = getDocsType(str);
+      return {
+        type: 'large-docs',
+        suggestedParser: 'large-docs',
+        confidence: 0.95,
+        reason: `Large documentation directory detected (${docsType})`,
+      };
+    }
+
     const ext = path.extname(str).toLowerCase();
 
     if (ext === '.yaml' || ext === '.yml') {
@@ -256,6 +298,18 @@ export function detectInputType(input: string | object): InputDetection {
     };
   }
 
+  // Check if it's a known connector name (for multi-source discovery)
+  const knownConnectors = getAllKnownConnectors();
+  const normalized = str.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  if (knownConnectors.includes(normalized)) {
+    return {
+      type: 'connector-name',
+      suggestedParser: 'multi-source',
+      confidence: 0.95,
+      reason: `Input matches known connector "${normalized}" — will use multi-source discovery`,
+    };
+  }
+
   // Default to text description for LLM
   return {
     type: 'description',
@@ -305,11 +359,333 @@ export async function parseSchema(
   }
 
   // Determine which parser to use
-  const parserToUse = options.forceParser || detection.suggestedParser;
+  let parserToUse = options.forceParser || detection.suggestedParser;
 
   let schema: ConnectorSchema;
   let metadata: Record<string, unknown> = {};
   let confidence: number | undefined;
+
+  // =========================================================================
+  // Multi-Source Discovery Layer
+  // For known connector names, fetch from multiple public registries
+  // and reconcile into a single schema.
+  // =========================================================================
+  if (
+    typeof input === 'string' &&
+    detection.type === 'connector-name' &&
+    (parserToUse === 'multi-source' || options.forceParser === 'multi-source')
+  ) {
+    if (options.verbose) {
+      console.log(`Multi-source discovery for connector: ${input}`);
+    }
+
+    const connectorName = input.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+    // Check harvested cache first (Layer 0)
+    const harvestedCachePath = path.join(process.cwd(), 'schemas', 'harvested', `${connectorName}.json`);
+    if (fs.existsSync(harvestedCachePath)) {
+      try {
+        const cached = JSON.parse(fs.readFileSync(harvestedCachePath, 'utf8'));
+        const cacheAge = Date.now() - (cached._harvestedAt || 0);
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
+        if (cacheAge < SEVEN_DAYS && cached._qualityScore >= 80) {
+          if (options.verbose) {
+            console.log(`  Using cached harvested schema (age: ${Math.round(cacheAge / 3600000)}h, quality: ${cached._qualityScore})`);
+          }
+          // Strip metadata fields
+          const { _harvestedAt, _qualityScore, _sourcesUsed, ...schemaData } = cached;
+
+          // Cached schemas were validated at harvest time — trust them
+          // Only do a basic shape check, not full Zod validation
+          if (schemaData.entities?.length > 0 && schemaData.auth && schemaData.name) {
+            schema = schemaData as ConnectorSchema;
+            metadata = {
+              source: 'harvested_cache',
+              harvestedAt: new Date(_harvestedAt).toISOString(),
+              qualityScore: _qualityScore,
+              sourcesUsed: _sourcesUsed,
+            };
+            return finalizeResult(schema, detection, 'multi-source', 0.9, warnings, metadata, { ...options, validate: false });
+          }
+        } else {
+          if (options.verbose) {
+            console.log(`  Cached schema is stale or low quality — re-fetching`);
+          }
+        }
+      } catch (err) {
+        if (options.verbose) {
+          console.log(`  Cache read error: ${err}`);
+        }
+      }
+    }
+
+    // Layer 1: Multi-source fetch
+    if (options.verbose) {
+      console.log('  Fetching from all sources in parallel...');
+    }
+    const multiSourceResult = await fetchFromAllSources(connectorName);
+
+    if (multiSourceResult.sources.length === 0) {
+      warnings.push(`No sources found for connector "${connectorName}" — falling back to LLM inference`);
+      parserToUse = 'llm';
+      // Fall through to the standard parser switch below
+    } else {
+      if (options.verbose) {
+        console.log(`  Found ${multiSourceResult.sources.length} sources (${multiSourceResult.fetchDurationMs}ms)`);
+        for (const src of multiSourceResult.sources) {
+          console.log(`    - ${src.source}: ${Object.keys(src.schemas).length} schemas, ${Object.keys(src.paths).length} paths`);
+        }
+      }
+
+      // Layer 3: Reconcile schemas
+      const reconciled = await reconcileSchemas(connectorName, multiSourceResult.sources, {
+        apiKey: options.apiKey,
+        verbose: options.verbose,
+      });
+
+      schema = reconciled.schema;
+      confidence = reconciled.confidence;
+      warnings.push(...reconciled.warnings);
+      metadata = {
+        sourcesUsed: reconciled.sourcesUsed,
+        fetchDurationMs: multiSourceResult.fetchDurationMs,
+        reconciliationDurationMs: reconciled.metadata.totalDurationMs,
+        tokensUsed: reconciled.metadata.tokensUsed,
+        entityCount: reconciled.schema.entities.length,
+      };
+
+      return finalizeResult(schema, detection, 'multi-source', confidence, warnings, metadata, options);
+    }
+  }
+
+  // =========================================================================
+  // URL Content Detection Layer
+  // For URL inputs, fetch the content first and decide routing based on
+  // actual content rather than URL string patterns alone.
+  // =========================================================================
+  if (
+    typeof input === 'string' &&
+    (detection.type === 'url' || detection.type === 'openapi-url') &&
+    !options.forceParser
+  ) {
+    if (options.verbose) {
+      console.log('Fetching URL content for detection...');
+    }
+
+    const urlDetection = await fetchAndDetectContent(input);
+
+    if (options.verbose) {
+      console.log(`  URL content detection: isOpenAPI=${urlDetection.isOpenAPI}, confidence=${urlDetection.confidence}`);
+      console.log(`  Reason: ${urlDetection.reason}`);
+      console.log(`  Content type: ${urlDetection.metadata.contentType}`);
+      console.log(`  Top-level keys: ${urlDetection.metadata.topLevelKeys.slice(0, 10).join(', ')}`);
+    }
+
+    if (urlDetection.isOpenAPI && urlDetection.parsedContent) {
+      // Parse the pre-fetched content directly — do NOT re-fetch the URL,
+      // because swagger-parser uses different Accept headers and the server
+      // may return HTML instead of the spec via content negotiation.
+      parserToUse = 'openapi';
+      if (options.verbose) {
+        console.log('  → Routing to OpenAPI parser with pre-fetched content (content confirmed as OpenAPI)');
+      }
+
+      const openApiOptions: OpenAPIParserOptions = {
+        name: options.name,
+        baseUrl: options.baseUrl,
+        tablePrefix: options.tablePrefix,
+      };
+      const parser = new OpenAPIParser(openApiOptions);
+      // Dereference $refs and convert Swagger 2.0 → OpenAPI 3.0 if needed
+      const dereferenced = await SwaggerParser.dereference(urlDetection.parsedContent as never);
+      const openApiResult = await parser.parseDocument(dereferenced as never);
+
+      schema = openApiResult.schema;
+      warnings.push(...openApiResult.warnings);
+      metadata = {
+        openApiVersion: openApiResult.metadata.openApiVersion,
+        title: openApiResult.metadata.title,
+        description: openApiResult.metadata.description,
+        servers: openApiResult.metadata.servers,
+        urlDetection: {
+          isOpenAPI: true,
+          contentType: urlDetection.metadata.contentType,
+          topLevelKeys: urlDetection.metadata.topLevelKeys,
+        },
+      };
+
+      return finalizeResult(schema, detection, parserToUse, urlDetection.confidence, warnings, metadata, options);
+    } else if (urlDetection.parsedContent) {
+      // Non-OpenAPI structured content → use LLM Agent Parser
+      parserToUse = 'llm-agent';
+      if (options.verbose) {
+        console.log('  → Routing to LLM Agent Parser (non-OpenAPI structured content)');
+      }
+
+      const agentParser = new LLMAgentParser({
+        apiKey: options.apiKey,
+        name: options.name,
+        baseUrl: options.baseUrl,
+        tablePrefix: options.tablePrefix,
+        verbose: options.verbose,
+      });
+
+      const agentResult = await agentParser.parseFromContent(
+        urlDetection.parsedContent,
+        urlDetection.contentSummary
+      );
+
+      schema = agentResult.schema;
+      confidence = agentResult.confidence;
+      warnings.push(...agentResult.warnings);
+      metadata = {
+        model: agentResult.metadata.model,
+        tokensUsed: agentResult.metadata.tokensUsed,
+        iterations: agentResult.metadata.iterations,
+        inferenceTime: agentResult.metadata.inferenceTime,
+        toolCalls: agentResult.metadata.toolCalls,
+        urlDetection: {
+          isOpenAPI: urlDetection.isOpenAPI,
+          contentType: urlDetection.metadata.contentType,
+          topLevelKeys: urlDetection.metadata.topLevelKeys,
+        },
+      };
+
+      // Skip the switch block below — go directly to post-processing
+      return finalizeResult(schema, detection, parserToUse, confidence, warnings, metadata, options);
+    } else if (urlDetection.isHTML && urlDetection.discoveredSpecUrl) {
+      // HTML docs page with an embedded spec URL — re-fetch the actual spec
+      if (options.verbose) {
+        console.log(`  → HTML docs page detected. Discovered spec URL: ${urlDetection.discoveredSpecUrl}`);
+        console.log('  → Re-fetching discovered spec URL...');
+      }
+      warnings.push(`Original URL returned HTML. Discovered spec at: ${urlDetection.discoveredSpecUrl}`);
+
+      // Recursively detect the discovered spec URL
+      const specDetection = await fetchAndDetectContent(urlDetection.discoveredSpecUrl);
+
+      if (specDetection.isOpenAPI && specDetection.parsedContent) {
+        // Found the OpenAPI spec — parse directly with OpenAPI parser
+        parserToUse = 'openapi';
+        if (options.verbose) {
+          console.log('  → Discovered URL confirmed as OpenAPI spec, routing to OpenAPI parser');
+        }
+
+        const openApiOptions: OpenAPIParserOptions = {
+          name: options.name,
+          baseUrl: options.baseUrl,
+          tablePrefix: options.tablePrefix,
+        };
+        // Parse pre-fetched content directly — avoid re-fetching which may
+        // get HTML due to content negotiation differences.
+        const parser = new OpenAPIParser(openApiOptions);
+        const dereferenced = await SwaggerParser.dereference(specDetection.parsedContent as never);
+        const openApiResult = await parser.parseDocument(dereferenced as never);
+
+        schema = openApiResult.schema;
+        warnings.push(...openApiResult.warnings);
+        metadata = {
+          openApiVersion: openApiResult.metadata.openApiVersion,
+          title: openApiResult.metadata.title,
+          description: openApiResult.metadata.description,
+          servers: openApiResult.metadata.servers,
+          discoveredSpecUrl: urlDetection.discoveredSpecUrl,
+        };
+
+        return finalizeResult(schema, detection, parserToUse, confidence, warnings, metadata, options);
+      } else if (specDetection.parsedContent) {
+        // Structured but non-OpenAPI content — route to LLM Agent
+        parserToUse = 'llm-agent';
+        if (options.verbose) {
+          console.log('  → Discovered URL has structured content, routing to LLM Agent Parser');
+        }
+
+        const agentParser = new LLMAgentParser({
+          apiKey: options.apiKey,
+          name: options.name,
+          baseUrl: options.baseUrl,
+          tablePrefix: options.tablePrefix,
+          verbose: options.verbose,
+        });
+
+        const agentResult = await agentParser.parseFromContent(
+          specDetection.parsedContent,
+          specDetection.contentSummary
+        );
+
+        schema = agentResult.schema;
+        confidence = agentResult.confidence;
+        warnings.push(...agentResult.warnings);
+        metadata = {
+          model: agentResult.metadata.model,
+          tokensUsed: agentResult.metadata.tokensUsed,
+          iterations: agentResult.metadata.iterations,
+          inferenceTime: agentResult.metadata.inferenceTime,
+          toolCalls: agentResult.metadata.toolCalls,
+          discoveredSpecUrl: urlDetection.discoveredSpecUrl,
+        };
+
+        return finalizeResult(schema, detection, parserToUse, confidence, warnings, metadata, options);
+      } else {
+        // Discovered URL also didn't return parseable content
+        if (options.verbose) {
+          console.log('  → Discovered spec URL also returned unparseable content, falling back to LLM');
+        }
+        warnings.push(`Discovered spec URL also returned unparseable content: ${specDetection.reason}`);
+      }
+    } else if (urlDetection.isHTML) {
+      // HTML page but no spec URL found — pass HTML summary to LLM Agent as a last resort
+      if (options.verbose) {
+        console.log('  → HTML docs page detected, no embedded spec URL found');
+        console.log('  → Routing to LLM Agent Parser with HTML content summary');
+      }
+      warnings.push('URL returned HTML with no discoverable spec URL. Using LLM to extract schema from page content.');
+
+      parserToUse = 'llm-agent';
+
+      const agentParser = new LLMAgentParser({
+        apiKey: options.apiKey,
+        name: options.name,
+        baseUrl: options.baseUrl,
+        tablePrefix: options.tablePrefix,
+        verbose: options.verbose,
+      });
+
+      // Create a synthetic content object from the HTML summary for the agent to analyze
+      const htmlSummaryContent = {
+        _source: 'html-docs-page',
+        _originalUrl: input,
+        _note: 'This content was extracted from an HTML API documentation page. Analyze the visible API endpoints, request/response schemas, and entity types.',
+        htmlSummary: urlDetection.contentSummary,
+      };
+
+      const agentResult = await agentParser.parseFromContent(
+        htmlSummaryContent,
+        urlDetection.contentSummary
+      );
+
+      schema = agentResult.schema;
+      confidence = agentResult.confidence;
+      warnings.push(...agentResult.warnings);
+      metadata = {
+        model: agentResult.metadata.model,
+        tokensUsed: agentResult.metadata.tokensUsed,
+        iterations: agentResult.metadata.iterations,
+        inferenceTime: agentResult.metadata.inferenceTime,
+        toolCalls: agentResult.metadata.toolCalls,
+        htmlFallback: true,
+      };
+
+      return finalizeResult(schema, detection, parserToUse, confidence, warnings, metadata, options);
+    } else {
+      // Could not parse content and not HTML — fall through to existing LLM text parser
+      if (options.verbose) {
+        console.log('  → Content could not be parsed, falling back to LLM text inference');
+      }
+      warnings.push(`URL content could not be parsed as JSON/YAML: ${urlDetection.reason}`);
+    }
+  }
 
   // Route to appropriate parser
   switch (parserToUse) {
@@ -407,10 +783,64 @@ export async function parseSchema(
       break;
     }
 
+    case 'large-docs': {
+      if (options.verbose) {
+        console.log('Using large documentation parser...');
+      }
+
+      if (typeof input !== 'string') {
+        throw new Error('Large docs parser requires a directory path');
+      }
+
+      const largeDocsOptions: LargeDocsParserOptions = {
+        docsPath: input,
+        name: options.name,
+        baseUrl: options.baseUrl,
+        tablePrefix: options.tablePrefix,
+        indexPath: options.indexPath,
+        verbose: options.verbose,
+      };
+
+      const parser = new LargeDocsParser(largeDocsOptions);
+      let result: LargeDocsParseResult;
+
+      if (options.records && options.records.length > 0) {
+        result = await parser.parseRecords(options.records);
+      } else {
+        result = await parser.parseCommonRecords();
+      }
+
+      schema = result.schema;
+      confidence = result.confidence;
+      warnings.push(...result.warnings);
+      metadata = {
+        docsVersion: result.metadata.docsVersion,
+        totalRecords: result.metadata.totalRecords,
+        parsedRecords: result.metadata.parsedRecords,
+        parseTime: result.metadata.parseTime,
+      };
+      break;
+    }
+
     default:
       throw new Error(`Unknown parser type: ${parserToUse}`);
   }
 
+  return finalizeResult(schema, detection, parserToUse, confidence, warnings, metadata, options);
+}
+
+/**
+ * Post-processing: apply overrides, validate, save, and return result
+ */
+function finalizeResult(
+  schema: ConnectorSchema,
+  detection: InputDetection,
+  parserUsed: SchemaParseResult['parserUsed'],
+  confidence: number | undefined,
+  warnings: string[],
+  metadata: Record<string, unknown>,
+  options: SchemaParserOptions
+): SchemaParseResult {
   // Apply name override if specified
   if (options.name && schema.name !== options.name) {
     schema.name = options.name;
@@ -433,6 +863,14 @@ export async function parseSchema(
     }
   }
 
+  // Run quality gate (non-blocking warnings)
+  const qualityReport = validateSchemaQuality(schema);
+  if (qualityReport.warnings.length > 0) {
+    warnings.push(...qualityReport.warnings);
+  }
+  metadata.qualityScore = qualityReport.score;
+  metadata.isShallow = qualityReport.isShallow;
+
   // Save to file if output path specified
   if (options.outputPath) {
     const outputDir = path.dirname(options.outputPath);
@@ -448,7 +886,7 @@ export async function parseSchema(
   return {
     schema,
     inputType: detection.type,
-    parserUsed: parserToUse,
+    parserUsed,
     confidence,
     warnings,
     metadata,
@@ -476,9 +914,38 @@ export {
   inferSchemaFromJSON,
   inferSchemaFromDescription,
 
+  // Large Docs Parser
+  LargeDocsParser,
+  LargeDocsParserOptions,
+  LargeDocsParseResult,
+  isLargeDocs,
+  getDocsType,
+  parseLargeDocs,
+
+  // URL Content Detector
+  fetchAndDetectContent,
+  generateContentSummary,
+  URLContentDetection,
+
+  // LLM Agent Parser
+  LLMAgentParser,
+  LLMAgentParserOptions,
+  LLMAgentParseResult,
+
+  // Schema Quality Validator
+  validateSchemaQuality,
+  QualityReport,
+
   // Schema types
   ConnectorSchema,
   SchemaValidationError,
+
+  // Multi-Source Discovery
+  fetchFromAllSources,
+  MultiSourceResult,
+  RawSourceSchema,
+  reconcileSchemas,
+  ReconciliationResult,
 };
 
 export default parseSchema;

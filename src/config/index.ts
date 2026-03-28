@@ -51,9 +51,23 @@ interface Config {
     credentials: boolean;
   };
   dataGeneration: {
-    provider: string;
+    provider: 'tonic' | 'faker' | 'llm';
     gretelApiKey: string;
     tonicApiKey: string;
+    fabricate: {
+      apiKey: string;
+      apiUrl: string;
+      workspace: string;
+    };
+    anthropicApiKey: string;
+    costOptimization: boolean;
+  };
+  ssl: {
+    enabled: boolean;
+    certPath: string;
+    keyPath: string;
+    httpsPort: number;
+    certsDir: string;
   };
   connectors: {
     netsuite: {
@@ -126,9 +140,23 @@ const config: Config = {
     credentials: process.env.CORS_CREDENTIALS === 'true',
   },
   dataGeneration: {
-    provider: process.env.DATA_GEN_PROVIDER || 'faker',
+    provider: (process.env.DATA_GEN_PROVIDER as 'tonic' | 'faker' | 'llm') || 'faker',
     gretelApiKey: process.env.GRETEL_API_KEY || '',
     tonicApiKey: process.env.TONIC_API_KEY || '',
+    fabricate: {
+      apiKey: process.env.FABRICATE_API_KEY || '',
+      apiUrl: process.env.FABRICATE_API_URL || 'https://fabricate.tonic.ai/api/v1',
+      workspace: process.env.FABRICATE_WORKSPACE || 'Default',
+    },
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+    costOptimization: process.env.DATA_GEN_COST_OPTIMIZATION === 'true',
+  },
+  ssl: {
+    enabled: process.env.SSL_ENABLED !== 'false',
+    certPath: process.env.SSL_CERT_PATH || '',
+    keyPath: process.env.SSL_KEY_PATH || '',
+    httpsPort: parseInt(process.env.HTTPS_PORT || '443', 10),
+    certsDir: process.env.SSL_CERTS_DIR || path.join(process.cwd(), 'certs'),
   },
   connectors: {
     netsuite: {
